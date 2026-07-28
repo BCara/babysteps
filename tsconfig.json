@@ -5,5 +5,9 @@
       "@/*": ["./*"]
     }
   },
+  "exclude": [
+    "functions",
+    "mcp-server"
+  ],
   "extends": "expo/tsconfig.base"
 }

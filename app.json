@@ -2,33 +2,56 @@
   "expo": {
     "name": "BabySteps",
     "slug": "babysteps",
-    "version": "1.0.0",
+    "owner": "cbert89",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "babysteps",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "newArchEnabled": true,
+    "backgroundColor": "#FFF9F5",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.babysteps.app"
     },
     "android": {
+      "package": "com.babysteps.app",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.babysteps.app"
+        "backgroundColor": "#FFF9F5"
+      }
     },
     "web": {
       "bundler": "metro"
     },
     "plugins": [
       "expo-router",
-      "@react-native-firebase/app"
-    ]
+      "@react-native-firebase/app",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFF9F5",
+          "dark": {
+            "backgroundColor": "#15131F"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "da4692ab-5a18-4a3c-8c1c-e0e6dff752c7"
+      }
+    }
   }
 }

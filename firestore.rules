@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAuthorizedCaregiver(babyId) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/babies/$(babyId)).data.authorizedCaregivers;
+    }
+
+    match /users/{userId} {
+      allow create: if ownsUser(userId)
+        && request.resource.data.babyIds == []
+        && request.resource.data.activeBabyId == null;
+
+      allow read: if ownsUser(userId);
+
+      allow update: if ownsUser(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'babyIds', 'activeBabyId', 'updatedAt']);
+
+      allow delete: if ownsUser(userId);
+    }
+
+    match /babies/{babyId} {
+      allow create: if signedIn()
+        && request.resource.data.authorizedCaregivers == [request.auth.uid];
+
+      allow read: if signedIn()
+        && request.auth.uid in resource.data.authorizedCaregivers;
+
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.authorizedCaregivers
+        && (
+          request.resource.data.authorizedCaregivers == resource.data.authorizedCaregivers
+          || (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['authorizedCaregivers', 'updatedAt'])
+            && request.resource.data.authorizedCaregivers
+              == resource.data.authorizedCaregivers.removeAll([request.auth.uid])
+          )
+        );
+
+      allow delete: if signedIn()
+        && resource.data.authorizedCaregivers == [request.auth.uid];
+
+      match /events/{eventId} {
+        allow read: if isAuthorizedCaregiver(babyId);
+
+        allow create: if isAuthorizedCaregiver(babyId)
+          && request.resource.data.loggedBy == request.auth.uid
+          && request.resource.data.type in ['feed', 'sleep', 'diaper']
+          && request.resource.data.source == 'app'
+          && request.resource.data.deletedAt == null;
+
+        allow update: if isAuthorizedCaregiver(babyId)
+          && request.resource.data.loggedBy == resource.data.loggedBy
+          && request.resource.data.type == resource.data.type
+          && request.resource.data.source == resource.data.source
+          && request.resource.data.createdAt == resource.data.createdAt;
+
+        allow delete: if isAuthorizedCaregiver(babyId)
+          && get(/databases/$(database)/documents/babies/$(babyId))
+            .data.authorizedCaregivers == [request.auth.uid];
+      }
+    }
+  }
+}

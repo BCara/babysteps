@@ -1,23 +1,65 @@
 import { Tabs } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 
 export default function TabsLayout() {
+  const theme = useTheme();
+
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen 
-        name="index" 
-        options={{ title: 'Home' }} 
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarStyle: {
+          height: 68,
+          paddingBottom: 8,
+          paddingTop: 6,
+          backgroundColor: theme.colors.elevation.level2,
+          borderTopColor: theme.colors.outlineVariant,
+        },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home-heart" color={color} size={size} />
+          ),
+        }}
       />
-      <Tabs.Screen 
-        name="timeline" 
-        options={{ title: 'Timeline' }} 
+      <Tabs.Screen
+        name="timeline"
+        options={{
+          title: 'Timeline',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="format-list-bulleted"
+              color={color}
+              size={size}
+            />
+          ),
+        }}
       />
-      <Tabs.Screen 
-        name="stats" 
-        options={{ title: 'Stats' }} 
+      <Tabs.Screen
+        name="stats"
+        options={{
+          title: 'Summary',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="chart-box-outline" color={color} size={size} />
+          ),
+        }}
       />
-      <Tabs.Screen 
-        name="settings" 
-        options={{ title: 'Settings' }} 
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cog-outline" color={color} size={size} />
+          ),
+        }}
       />
     </Tabs>
   );

@@ -1,62 +1,77 @@
 import React from 'react';
 import { StyleSheet, Pressable } from 'react-native';
-import { Text, Surface, useTheme } from 'react-native-paper';
-import { MotiView } from 'moti';
+import { Icon, Surface, Text } from 'react-native-paper';
 
 interface QuickLogButtonProps {
   title: string;
-  icon?: string;
+  icon: string;
   color: string;
   onPress: () => void;
-  onLongPress?: () => void;
+  accessibilityHint?: string;
+  disabled?: boolean;
 }
 
-export default function QuickLogButton({ title, color, onPress, onLongPress }: QuickLogButtonProps) {
-  const theme = useTheme();
-
+export default function QuickLogButton({
+  title,
+  icon,
+  color,
+  onPress,
+  accessibilityHint,
+  disabled = false,
+}: QuickLogButtonProps) {
   return (
-    <MotiView
-      from={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring' }}
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
       style={styles.wrapper}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
     >
-      <Pressable onPress={onPress} onLongPress={onLongPress}>
-        {({ pressed }) => (
-          <Surface 
-            style={[
-              styles.button, 
-              { backgroundColor: color },
-              pressed && styles.pressed
-            ]} 
-            elevation={pressed ? 1 : 2}
-          >
-            <Text variant="titleMedium" style={styles.text}>{title}</Text>
-          </Surface>
-        )}
-      </Pressable>
-    </MotiView>
+      {({ pressed }) => (
+        <Surface
+          style={[
+            styles.button,
+            { backgroundColor: color },
+            pressed && styles.pressed,
+            disabled && styles.disabled,
+          ]}
+          elevation={pressed ? 1 : 2}
+        >
+          <Icon source={icon} size={32} color="#302C3B" />
+          <Text variant="titleMedium" style={styles.text}>
+            {title}
+          </Text>
+        </Surface>
+      )}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
-    width: '45%',
-    aspectRatio: 1,
+    width: '30%',
+    minWidth: 96,
+    aspectRatio: 1.05,
   },
   button: {
     width: '100%',
     height: '100%',
-    borderRadius: 24,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   pressed: {
     opacity: 0.8,
-    transform: [{ scale: 0.95 }],
+    transform: [{ scale: 0.97 }],
+  },
+  disabled: {
+    opacity: 0.55,
   },
   text: {
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#302C3B',
   }
 });

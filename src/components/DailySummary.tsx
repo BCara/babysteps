@@ -1,22 +1,39 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
+import { BabyEvent } from '../services/firebase/events';
+import { summarizeEvents } from '../utils/eventSummary';
 
-export default function DailySummary() {
+interface DailySummaryProps {
+  events: BabyEvent[];
+}
+
+const formatSleep = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (!hours) return `${remainder}m`;
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+};
+
+export default function DailySummary({ events }: DailySummaryProps) {
+  const summary = summarizeEvents(events);
+
   return (
     <Surface style={styles.container} elevation={1}>
-      <Text variant="titleMedium" style={styles.title}>Today's Summary</Text>
+      <Text variant="titleMedium" style={styles.title}>
+        Today
+      </Text>
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
-          <Text variant="headlineMedium">6</Text>
+          <Text variant="headlineSmall">{summary.feeds}</Text>
           <Text variant="bodySmall">Feeds</Text>
         </View>
         <View style={styles.statBox}>
-          <Text variant="headlineMedium">4</Text>
-          <Text variant="bodySmall">Diapers</Text>
+          <Text variant="headlineSmall">{summary.diapers}</Text>
+          <Text variant="bodySmall">Nappies</Text>
         </View>
         <View style={styles.statBox}>
-          <Text variant="headlineMedium">14h</Text>
+          <Text variant="headlineSmall">{formatSleep(summary.sleepMinutes)}</Text>
           <Text variant="bodySmall">Sleep</Text>
         </View>
       </View>
@@ -29,7 +46,6 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
   },
   title: {
     marginBottom: 16,
@@ -46,5 +62,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
     marginHorizontal: 4,
+    minHeight: 76,
+    justifyContent: 'center',
   }
 });

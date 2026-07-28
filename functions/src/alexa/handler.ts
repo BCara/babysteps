@@ -1,4 +1,8 @@
-import { RequestHandler, HandlerInput } from 'ask-sdk-core';
+import {
+  ErrorHandler as AskErrorHandler,
+  HandlerInput,
+  RequestHandler,
+} from 'ask-sdk-core';
 import { LogFeedIntentHandler } from './intents/logFeed';
 import { LogSleepIntentHandler } from './intents/logSleep';
 import { LogDiaperIntentHandler } from './intents/logDiaper';
@@ -16,7 +20,7 @@ const LaunchRequestHandler: RequestHandler = {
   }
 };
 
-const ErrorHandler = {
+export const AlexaErrorHandler: AskErrorHandler = {
   canHandle() {
     return true;
   },
@@ -31,10 +35,9 @@ const ErrorHandler = {
   }
 };
 
-export const AlexaSkillHandler = [
+export const AlexaRequestHandlers = [
   LaunchRequestHandler,
   LogFeedIntentHandler,
   LogSleepIntentHandler,
   LogDiaperIntentHandler,
-  ErrorHandler
 ];

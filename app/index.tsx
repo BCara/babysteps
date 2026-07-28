@@ -1,11 +1,20 @@
 import { Redirect } from 'expo-router';
+import { ActivityIndicator } from 'react-native-paper';
+import { View } from 'react-native';
+import { useAuth } from '../src/providers/AuthProvider';
 
-// This is the entry point that redirects based on auth state.
 export default function Index() {
-  // TODO: Add auth state check here
-  const isAuthenticated = false; // Mock state for now
+  const { user, initializing } = useAuth();
 
-  if (!isAuthenticated) {
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!user) {
     return <Redirect href="/(auth)/login" />;
   }
 

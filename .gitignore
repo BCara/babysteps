@@ -2,6 +2,8 @@
 node_modules/
 functions/node_modules/
 mcp-server/node_modules/
+functions/lib/
+mcp-server/build/
 
 # Expo and Metro
 .expo/
@@ -25,6 +27,7 @@ ios/build/
 *.jks
 *.keystore
 credentials.json
+.release-credentials/
 service-account*.json
 .env
 .env.*
@@ -44,4 +47,3 @@ Thumbs.db
 
 # Test output
 coverage/
-

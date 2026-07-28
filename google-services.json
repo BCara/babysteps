@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "942163605541",
+    "project_id": "babysteps-cbert",
+    "storage_bucket": "babysteps-cbert.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:942163605541:android:9ce2542e222c32c1e3e7cc",
+        "android_client_info": {
+          "package_name": "com.babysteps.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8qZo1lOfFs95s0e7U3igThAn5U2cmGTM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

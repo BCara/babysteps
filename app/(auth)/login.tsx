@@ -1,43 +1,149 @@
-import { View, StyleSheet } from 'react-native';
-import { Text, Button, TextInput } from 'react-native-paper';
+import { useState } from 'react';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
 import { Link } from 'expo-router';
+import { useAuth } from '../../src/providers/AuthProvider';
 
 export default function LoginScreen() {
+  const theme = useTheme();
+  const { signIn, resetPassword, errorMessage } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setError('Enter your email and password.');
+      return;
+    }
+
+    setBusy(true);
+    setError('');
+    try {
+      await signIn(email, password);
+    } catch (nextError) {
+      setError(errorMessage(nextError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!email.trim()) {
+      setError('Enter your email first, then tap Forgot password.');
+      return;
+    }
+
+    setBusy(true);
+    setError('');
+    try {
+      await resetPassword(email);
+      setResetSent(true);
+    } catch (nextError) {
+      setError(errorMessage(nextError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text variant="displayMedium" style={styles.title}>BabySteps</Text>
-      <Text variant="bodyLarge" style={styles.subtitle}>Welcome back!</Text>
-      
-      <TextInput
-        label="Email"
-        mode="outlined"
-        style={styles.input}
-      />
-      <TextInput
-        label="Password"
-        mode="outlined"
-        secureTextEntry
-        style={styles.input}
-      />
-      
-      <Link href="/(app)/(tabs)" asChild>
-        <Button mode="contained" style={styles.button}>
-          Log In
+    <KeyboardAvoidingView
+      style={[styles.page, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image source={require('../../assets/icon.png')} style={styles.logo} />
+        <Text variant="headlineLarge" style={styles.title}>
+          Welcome back
+        </Text>
+        <Text variant="bodyLarge" style={styles.subtitle}>
+          Keep everyday care in one calm place.
+        </Text>
+
+        <TextInput
+          label="Email"
+          mode="outlined"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          returnKeyType="next"
+          style={styles.input}
+        />
+        <TextInput
+          label="Password"
+          mode="outlined"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="current-password"
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+          style={styles.input}
+        />
+
+        <HelperText type="error" visible={Boolean(error)}>
+          {error}
+        </HelperText>
+        <HelperText type="info" visible={resetSent}>
+          Password reset email sent. Check your inbox.
+        </HelperText>
+
+        <Button
+          mode="contained"
+          onPress={handleLogin}
+          loading={busy}
+          disabled={busy}
+          contentStyle={styles.buttonContent}
+        >
+          Log in
         </Button>
-      </Link>
-      
-      <Link href="/(auth)/register" asChild>
-        <Button mode="text">Don't have an account? Sign up</Button>
-      </Link>
-    </View>
+        <Button mode="text" onPress={handleReset} disabled={busy}>
+          Forgot password?
+        </Button>
+
+        <View style={styles.signupRow}>
+          <Text>New to BabySteps?</Text>
+          <Link href="/(auth)/register" asChild>
+            <Button mode="text" compact>
+              Create account
+            </Button>
+          </Link>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  page: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  logo: {
+    width: 104,
+    height: 104,
+    borderRadius: 26,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   title: {
     textAlign: 'center',
@@ -50,10 +156,15 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  button: {
-    marginTop: 8,
-    marginBottom: 16,
+  buttonContent: {
+    minHeight: 50,
+  },
+  signupRow: {
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   }
 });

@@ -1,20 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Surface, IconButton } from 'react-native-paper';
-import { MotiView } from 'moti';
+import { Text, Surface, Button } from 'react-native-paper';
 
 interface ActiveTimerProps {
   activityType: string;
-  startTime: number;
+  startTime: Date;
   onStop: () => void;
+  stopping?: boolean;
 }
 
-export default function ActiveTimer({ activityType, startTime, onStop }: ActiveTimerProps) {
-  const [elapsed, setElapsed] = useState(Date.now() - startTime);
+export default function ActiveTimer({
+  activityType,
+  startTime,
+  onStop,
+  stopping = false,
+}: ActiveTimerProps) {
+  const [elapsed, setElapsed] = useState(Date.now() - startTime.getTime());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setElapsed(Date.now() - startTime);
+      setElapsed(Date.now() - startTime.getTime());
     }, 1000);
     return () => clearInterval(interval);
   }, [startTime]);
@@ -34,23 +39,25 @@ export default function ActiveTimer({ activityType, startTime, onStop }: ActiveT
   return (
     <Surface style={styles.container} elevation={2}>
       <View style={styles.info}>
-        <MotiView
-          from={{ opacity: 0.5, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ loop: true, type: 'timing', duration: 1000 }}
-          style={styles.pulseIndicator}
-        />
+        <View style={styles.pulseIndicator} />
         <View>
-          <Text variant="titleMedium" style={{ textTransform: 'capitalize' }}>{activityType}</Text>
-          <Text variant="headlineMedium" style={styles.time}>{formatElapsed(elapsed)}</Text>
+          <Text variant="titleMedium" style={{ textTransform: 'capitalize' }}>
+            {activityType} in progress
+          </Text>
+          <Text variant="headlineMedium" style={styles.time}>
+            {formatElapsed(elapsed)}
+          </Text>
         </View>
       </View>
-      <IconButton 
-        icon="stop-circle" 
-        size={40} 
-        iconColor="#E76F51"
-        onPress={onStop} 
-      />
+      <Button
+        mode="contained-tonal"
+        icon="stop-circle-outline"
+        onPress={onStop}
+        loading={stopping}
+        disabled={stopping}
+      >
+        Stop
+      </Button>
     </Surface>
   );
 }
@@ -64,7 +71,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   info: {
     flexDirection: 'row',
