@@ -12,6 +12,7 @@
     "test": "vitest run tests/unit",
     "test:rules": "vitest run tests/firestore.rules.test.ts --maxWorkers=1",
     "test:emulators": "firebase emulators:exec --project babysteps-cbert --only firestore \"npm run test:rules\"",
+    "verify:live-firebase": "node scripts/verify-live-firebase.mjs",
     "prebuild:android": "expo prebuild --platform android --clean",
     "build:android:preview": "eas build --platform android --profile preview",
     "build:android:production": "eas build --platform android --profile production"
