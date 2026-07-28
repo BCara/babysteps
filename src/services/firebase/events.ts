@@ -1,4 +1,6 @@
 import firestore from '@react-native-firebase/firestore';
+import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import { withoutUndefined } from '../../utils/withoutUndefined';
 
 export interface BabyEvent {
   id?: string;
@@ -27,14 +29,18 @@ export const logEvent = (babyId: string, event: NewEvent) =>
     .collection('babies')
     .doc(babyId)
     .collection('events')
-    .add({
-      ...event,
-      startTime: firestore.Timestamp.fromDate(event.startTime),
-      endTime: event.endTime ? firestore.Timestamp.fromDate(event.endTime) : null,
-      createdAt: firestore.FieldValue.serverTimestamp(),
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-      deletedAt: null,
-    });
+    .add(
+      withoutUndefined({
+        ...event,
+        startTime: firestore.Timestamp.fromDate(event.startTime),
+        endTime: event.endTime
+          ? firestore.Timestamp.fromDate(event.endTime)
+          : null,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+        deletedAt: null,
+      }) as FirebaseFirestoreTypes.DocumentData,
+    );
 
 export const updateEvent = (
   babyId: string,
@@ -57,7 +63,9 @@ export const updateEvent = (
     .doc(babyId)
     .collection('events')
     .doc(eventId)
-    .update(dataToUpdate);
+    .update(
+      withoutUndefined(dataToUpdate) as FirebaseFirestoreTypes.DocumentData,
+    );
 };
 
 export const softDeleteEvent = (babyId: string, eventId: string) =>

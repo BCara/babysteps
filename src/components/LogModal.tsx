@@ -111,7 +111,9 @@ export default function LogModal({ visible, type, onClose, onSave }: LogModalPro
       >
         <Surface style={styles.modal} elevation={5}>
           <View style={[styles.header, { backgroundColor: color }]}>
-            <Text variant="titleLarge" style={styles.title}>Log {type}</Text>
+            <Text variant="titleLarge" style={styles.title}>
+              Log {type === 'diaper' ? 'nappy' : type}
+            </Text>
             <IconButton icon="close" onPress={onClose} />
           </View>
           

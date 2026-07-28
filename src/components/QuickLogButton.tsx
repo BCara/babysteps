@@ -33,9 +33,11 @@ export default function QuickLogButton({
         <Surface
           style={[
             styles.button,
-            { backgroundColor: color },
-            pressed && styles.pressed,
-            disabled && styles.disabled,
+            {
+              backgroundColor: color,
+              opacity: disabled ? 0.55 : pressed ? 0.8 : 1,
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+            },
           ]}
           elevation={pressed ? 1 : 2}
         >
@@ -62,13 +64,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-  },
-  pressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.97 }],
-  },
-  disabled: {
-    opacity: 0.55,
   },
   text: {
     fontWeight: 'bold',
