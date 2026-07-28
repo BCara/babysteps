@@ -410,6 +410,7 @@ The test can proceed toward production access when:
 - `store-assets/PLAY_CONSOLE_CHECKLIST.md` — console sequence and policy answers.
 - `store-assets/TESTER_INSTRUCTIONS.md` — text to send to closed testers.
 - `store-assets/RELEASE_NOTES.md` — initial release notes.
+- `store-assets/RELEASE_EVIDENCE.md` — signed artifact hashes, build IDs and verification evidence.
 - `store-assets/play-icon-512.png` — 512 × 512 store icon.
 - `store-assets/feature-graphic-1024x500.png` — 1024 × 500 feature graphic.
 
