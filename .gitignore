@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+mcp-server/node_modules/
+
+# Expo and Metro
+.expo/
+.expo-shared/
+web-build/
+dist/
+
+# Native generated output
+android/.gradle/
+android/app/build/
+android/build/
+ios/Pods/
+ios/build/
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+
+# Signing material and credentials
+*.jks
+*.keystore
+credentials.json
+service-account*.json
+.env
+.env.*
+!.env.example
+
+# Firebase local output
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+
+# IDE and operating system
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test output
+coverage/
+
