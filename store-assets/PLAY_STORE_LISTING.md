@@ -83,3 +83,15 @@ English (Australia), `en-AU`.
 ## Release name
 
 `0.1.0 (1) — Initial closed test`
+
+## Prepared phone screenshots
+
+The following 1080 × 2400 PNG files use the fictional Play review profile:
+
+1. `store-assets/screenshots/01-home.png`
+2. `store-assets/screenshots/02-timeline.png`
+3. `store-assets/screenshots/03-summary.png`
+4. `store-assets/screenshots/04-settings.png`
+
+They contain no real child or caregiver data. Upload them in this order, or omit
+the Settings image if the Play listing benefits from a tighter three-image set.
