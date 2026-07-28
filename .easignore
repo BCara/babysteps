@@ -1,0 +1,42 @@
+# Version control and dependencies
+.git/
+node_modules/
+functions/node_modules/
+mcp-server/node_modules/
+
+# Local Expo, Firebase and generated output
+.expo/
+.expo-shared/
+.firebase/
+android/
+ios/
+dist/
+web-build/
+functions/lib/
+mcp-server/build/
+test-artifacts/
+coverage/
+
+# Signing material and credentials
+*.jks
+*.keystore
+credentials.json
+.release-credentials/
+service-account*.json
+.env
+.env.*
+!.env.example
+
+# Build and debug output
+*.apk
+*.aab
+*.ipa
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# IDE and operating system
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
