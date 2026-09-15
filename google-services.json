@@ -7,12 +7,33 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:942163605541:android:9ce2542e222c32c1e3e7cc",
+        "mobilesdk_app_id": "1:942163605541:android:d07a30f55c79f7f3e3e7cc",
         "android_client_info": {
-          "package_name": "com.babysteps.app"
+          "package_name": "com.cbcreations.babysteps"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "942163605541-as5utoajm45v9lasjeljp1eqqqrf1juq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cbcreations.babysteps",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "942163605541-b0ph454d5stfhpqmgdkodv17p60v4tcb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cbcreations.babysteps",
+            "certificate_hash": "dcd67f63d59a69ac8017b888cc743afbcbbc75a2"
+          }
+        },
+        {
+          "client_id": "942163605541-a032ihh1kvc7fmbo2a5gj1k0heu1r582.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC8qZo1lOfFs95s0e7U3igThAn5U2cmGTM"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "942163605541-a032ihh1kvc7fmbo2a5gj1k0heu1r582.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

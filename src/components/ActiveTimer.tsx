@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Surface, Button } from 'react-native-paper';
+import { formatTimerSeconds } from '../utils/feedTiming';
 
 interface ActiveTimerProps {
   activityType: string;
   startTime: Date;
   onStop: () => void;
   stopping?: boolean;
+  indicatorColor?: string;
 }
 
 export default function ActiveTimer({
@@ -14,6 +16,7 @@ export default function ActiveTimer({
   startTime,
   onStop,
   stopping = false,
+  indicatorColor = '#E76F51',
 }: ActiveTimerProps) {
   const [elapsed, setElapsed] = useState(Date.now() - startTime.getTime());
 
@@ -24,28 +27,16 @@ export default function ActiveTimer({
     return () => clearInterval(interval);
   }, [startTime]);
 
-  const formatElapsed = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   return (
     <Surface style={styles.container} elevation={2}>
       <View style={styles.info}>
-        <View style={styles.pulseIndicator} />
+        <View style={[styles.pulseIndicator, { backgroundColor: indicatorColor }]} />
         <View>
           <Text variant="titleMedium" style={{ textTransform: 'capitalize' }}>
             {activityType} in progress
           </Text>
           <Text variant="headlineMedium" style={styles.time}>
-            {formatElapsed(elapsed)}
+            {formatTimerSeconds(elapsed / 1000)}
           </Text>
         </View>
       </View>
@@ -55,6 +46,7 @@ export default function ActiveTimer({
         onPress={onStop}
         loading={stopping}
         disabled={stopping}
+        accessibilityLabel={`Stop ${activityType} timer`}
       >
         Stop
       </Button>
@@ -80,7 +72,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#E76F51',
     marginRight: 16,
   },
   time: {

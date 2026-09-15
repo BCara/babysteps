@@ -3,62 +3,73 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Privacy policy for the BabySteps Android app.">
-    <title>BabySteps Privacy Policy</title>
+    <meta name="description" content="Privacy policy for the PitterPatter Android app, optional AI Assistant and Alexa skill.">
+    <title>PitterPatter Privacy Policy</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
     <header>
       <div class="header-inner">
-        <p class="eyebrow">BabySteps</p>
+        <p class="eyebrow">PitterPatter</p>
         <h1>Privacy policy</h1>
-        <p class="updated">Effective and last updated: 28 July 2026</p>
+        <p class="updated">Effective and last updated: 2 September 2026</p>
       </div>
     </header>
     <main>
-      <p>This policy explains how the BabySteps Android app (“BabySteps”, “we”, “our”) handles information. BabySteps is intended for adult caregivers to record routine baby-care activity.</p>
+      <p>This policy explains how the PitterPatter Android app (“PitterPatter”, “we”, “our”) handles information. PitterPatter is intended for adult caregivers to record routine baby-care activity.</p>
 
       <h2>Information we collect</h2>
       <ul>
         <li><strong>Account information:</strong> email address, display name and Firebase account identifier.</li>
+        <li><strong>Alexa linking information:</strong> hashed access and refresh tokens that connect an Alexa skill user to a PitterPatter account. PitterPatter does not store the account password used on the linking page.</li>
         <li><strong>Baby profile information:</strong> the name or nickname and date of birth entered by a caregiver.</li>
-        <li><strong>Care activity:</strong> feed, sleep and diaper events, timestamps, durations, optional quantities and optional notes.</li>
+        <li><strong>Care activity:</strong> feed, sleep, nappy, pumping, solids, potty, tummy-time and bath events, timestamps, durations, optional quantities and optional notes. When Alexa is used, the saved event is marked as originating from Alexa.</li>
+        <li><strong>Growth, development and health records:</strong> optional growth measurements, milestones, teething updates, temperature readings and measurement methods, medicine records, symptoms or observations, appointments and immunisations entered by a caregiver.</li>
+        <li><strong>Alexa command information:</strong> Amazon processes the user's speech and sends PitterPatter the resulting intent and relevant values, such as a duration or nappy type. PitterPatter does not receive or store the raw audio.</li>
         <li><strong>Technical information:</strong> Firebase may process routine security, authentication, diagnostic and service-operation information such as IP address, device or app identifiers, and request logs.</li>
+        <li><strong>Advertising information for Free accounts:</strong> Google Mobile Ads may process IP address, advertising or app-set identifiers, ad impressions, ad taps, app interactions and diagnostic information to deliver and measure ads and prevent fraud.</li>
+        <li><strong>Premium purchase information:</strong> Google Play processes payment details. PitterPatter receives and stores the subscription product, purchase token, status and expiry needed to verify and restore ad-free access; PitterPatter does not receive full card or bank details.</li>
+        <li><strong>Optional AI information:</strong> after explicit consent, PitterPatter processes either (a) an Assistant question and the minimum structured facts derived from up to 30 days of the selected baby's records, or (b) an appointment or immunisation image or pasted message or email text selected by the caregiver for one-time field extraction. Assistant requests exclude baby and caregiver names, exact date of birth, Firebase identifiers, who logged an event, notes, provider names, observations and other free text. Health-record imports may contain provider, location, booking and health details present in the source. The source image or pasted text is not attached to the saved record.</li>
+        <li><strong>Optional in-app voice entry:</strong> when a caregiver chooses voice entry, the configured speech-recognition service processes microphone audio to produce draft text. PitterPatter requires the caregiver to review the draft before saving a structured care record and does not intentionally store the raw recording.</li>
       </ul>
 
       <h2>How we use information</h2>
-      <p>We use the information to authenticate users, store and synchronise care records, show timelines and summaries, support account and data deletion, prevent abuse, maintain security, diagnose faults and provide user support. We do not use care records for advertising, profiling or medical decision-making.</p>
+      <p>We use the information to authenticate users, link an Alexa skill when a caregiver chooses to do so, carry out Alexa logging commands, store and synchronise care records, show timelines and summaries, answer consented Assistant requests about the selected baby's logged records, support account and data deletion, verify Premium access, prevent abuse, maintain security, diagnose faults and provide user support. We do not send baby names, birth dates, care records, growth or health records, care notes or AI questions to the advertising service, and we do not use care records for advertising, profiling or medical decision-making.</p>
 
       <h2>Service providers and sharing</h2>
-      <p>BabySteps uses Google Firebase services for authentication, database storage and hosting. Google processes data on our behalf to provide these services. We do not sell personal information. We do not share personal information with advertisers or data brokers. We may disclose information if required by law, to protect users or the service, or as part of a business transfer subject to appropriate safeguards.</p>
+      <p>PitterPatter uses Google Firebase for authentication, database storage, hosting, App Check, Alexa account-link tokens and secure purchase verification; OpenAI to generate optional Assistant responses and extract editable fields from a caregiver-selected appointment or immunisation image or pasted text; Amazon Alexa to process spoken requests and deliver structured skill commands; the configured device speech-recognition service for optional in-app voice entry; Google Play for Premium subscriptions; and Google Mobile Ads for advertising on the Free tier. Google Mobile Ads automatically collects and shares limited technical and advertising-interaction information for ad delivery, measurement and fraud prevention. PitterPatter requests non-personalised ads and uses Google's consent tools where required. We do not sell personal information or provide baby-care records to advertisers or data brokers. We may disclose information if required by law, to protect users or the service, or as part of a business transfer subject to appropriate safeguards.</p>
+      <p>OpenAI states that API data is not used to train its models unless the customer opts in. PitterPatter sends optional AI requests, including appointment and immunisation extraction, with API storage disabled. Under OpenAI's default abuse-monitoring policy, submitted content may still be retained for up to 30 days. This provider boundary may change, so the current policy must be checked before release.</p>
+
+      <h2>Free and Premium plans</h2>
+      <p>Free accounts can use the core care-tracking features, may see banner ads and receive five lifetime successful uncached AI generations after giving consent. Premium and eligible Founding Premium accounts are ad-free and receive 100 successful uncached AI generations per UTC calendar month; unused allowance does not roll over. Cached summaries and failed requests do not use allowance. Premium subscriptions are purchased, renewed, cancelled and refunded through Google Play under the terms shown by Google Play at purchase. Changing or deleting a PitterPatter account does not itself cancel a Google Play subscription; subscriptions can be managed in Google Play.</p>
 
       <h2>Storage and security</h2>
       <p>Data is transmitted using encrypted connections and stored in Firebase. Access rules restrict app data to authenticated, authorised caregivers. No internet service can guarantee absolute security, so caregivers should avoid recording information that is not needed for routine care tracking.</p>
 
       <h2>Retention and deletion</h2>
-      <p>Account and care information is retained while the account is active. A sole caregiver can delete the account and associated BabySteps data in the app from Settings. Deletion removes the user profile, baby profile, care events and authentication account. Operational logs or backups may persist for a limited period under Firebase retention and recovery processes before being overwritten or deleted. Legal or security requirements may require limited information to be retained for longer.</p>
+      <p>Account, entitlement, Alexa-link and care information is retained while the account is active. Assistant consent and quota counters are held server-side. PitterPatter caches successful question responses for up to one hour and summary responses for up to 24 hours for retry and efficiency; it does not keep a persistent conversation history. Revoking AI consent blocks future requests and removes PitterPatter's cached AI responses. Alexa access tokens expire and refresh tokens are time-limited; unlinking or deleting the account prevents further Alexa access. A caregiver can delete their account in the app from Settings. Deletion removes their user profile, entitlement, purchase-token binding, Alexa-link tokens, Assistant consent/quota/cache/request records and authentication account. If another caregiver can access a baby profile, the departing caregiver's access is removed while the baby profile and care history remain available to the other caregiver. If the departing caregiver is the last caregiver, that baby profile and its care records are deleted. Google Play, Amazon, OpenAI and speech-recognition providers may retain their own records under their legal, security and service requirements. Operational logs or backups may persist for a limited period under Firebase retention and recovery processes before being overwritten or deleted. Legal or security requirements may require limited information to be retained for longer.</p>
       <p>Deletion can also be requested using the instructions on the <a href="/delete-account.html">account deletion page</a>.</p>
 
       <h2>Children’s information</h2>
-      <p>BabySteps is directed to adult caregivers, not children. A caregiver may enter limited information about a child. The caregiver is responsible for having authority to provide and manage that information. The app should not be used by a child to create an account.</p>
+      <p>PitterPatter is directed to adult caregivers, not children. A caregiver may enter limited information about a child. The caregiver is responsible for having authority to provide and manage that information. The app should not be used by a child to create an account.</p>
 
       <h2>Your choices and rights</h2>
-      <p>You may review and edit baby information and care entries in the app. You may delete entries or request deletion of the account and associated data. Depending on where you live, privacy law may provide additional access, correction, deletion, restriction or complaint rights. Contact us to exercise those rights.</p>
+      <p>You may review and edit baby information and care entries in the app. You may delete entries or request deletion of the account and associated data. Optional AI processing—including appointment and immunisation import—requires explicit consent and can be disabled from Settings at any time. Where required, Free accounts can review or change advertising privacy choices from Settings. Android also provides controls for resetting or deleting the advertising identifier. Depending on where you live, privacy law may provide additional access, correction, deletion, restriction or complaint rights. Contact us to exercise those rights.</p>
 
       <h2>International processing</h2>
-      <p>Firebase’s service infrastructure and support operations may process information outside your state or country. We use Firebase’s Australia region for the primary Firestore database, but authentication, logs, backups or support systems may operate in other locations.</p>
+      <p>Firebase's service infrastructure and support operations may process information outside your state or country. We use Firebase's Australia region for the primary Firestore database and AI callables, but authentication, logs, backups or support systems may operate in other locations. OpenAI, Amazon and a speech-recognition provider may also process optional request data in other countries.</p>
 
       <h2>Medical disclaimer</h2>
-      <p>BabySteps is a convenience log and is not a medical device. It does not provide medical advice, diagnosis, monitoring or emergency services. Do not rely on the app where a missed, delayed or incorrect record could cause harm.</p>
+      <p>PitterPatter is a convenience log and is not a medical device. It does not provide medical advice, diagnosis, monitoring or emergency services. The AI Assistant may describe logged facts and supported comparisons only; it is not parenting or medical advice and may be inaccurate. Do not rely on the app where a missed, delayed or incorrect record could cause harm.</p>
 
       <h2>Changes to this policy</h2>
       <p>We may update this policy as the app changes. The effective date above will be updated when material changes are made. Where appropriate, users will be notified in the app or through the test programme.</p>
 
       <h2>Contact</h2>
-      <p>For privacy questions or requests, email <a href="mailto:clb.bertram@googlemail.com">clb.bertram@googlemail.com</a>. Please use the subject “BabySteps privacy”.</p>
+      <p>For privacy questions or requests, email <a href="mailto:codebertcreations@gmail.com">codebertcreations@gmail.com</a>. Please use the subject “PitterPatter privacy”.</p>
 
       <p><a href="/">Back to support</a></p>
     </main>
-    <footer>© 2026 BabySteps</footer>
+    <footer>© 2026 PitterPatter</footer>
   </body>
 </html>

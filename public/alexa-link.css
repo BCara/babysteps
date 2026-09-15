@@ -1,0 +1,148 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 201, 184, 0.5), transparent 36rem),
+    #fff9f5;
+  color: #302c3b;
+}
+
+.alexa-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.alexa-card {
+  width: min(100%, 520px);
+  box-sizing: border-box;
+  padding: clamp(24px, 7vw, 44px);
+  border: 1px solid rgba(48, 44, 59, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 70px rgba(74, 54, 68, 0.14);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #9b4f67;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.02;
+}
+
+.intro {
+  margin: 18px 0 28px;
+  color: #5f5968;
+  line-height: 1.6;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid #c9c1ca;
+  border-radius: 12px;
+  background: #fff;
+  color: #302c3b;
+  font: inherit;
+}
+
+input:focus {
+  border-color: #9b4f67;
+  outline: 3px solid rgba(155, 79, 103, 0.16);
+}
+
+.privacy-note,
+.footer-note {
+  color: #6e6872;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: #9b4f67;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+button.secondary {
+  border: 1px solid #c9c1ca;
+  background: #fff;
+  color: #302c3b;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
+.notice {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  line-height: 1.45;
+}
+
+.notice.error {
+  border: 1px solid #f0b5b5;
+  background: #fff0f0;
+  color: #7a2727;
+}
+
+.footer-note {
+  margin: 24px 0 0;
+}
+
+a {
+  color: #7f3851;
+}
+
+@media (max-width: 480px) {
+  .alexa-shell {
+    align-items: start;
+    padding: 12px;
+  }
+
+  .alexa-card {
+    margin-top: 12px;
+    border-radius: 22px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

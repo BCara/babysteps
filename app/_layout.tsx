@@ -1,27 +1,63 @@
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
-import { useColorScheme } from 'react-native';
-import { lightTheme, darkTheme } from '../src/theme';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { appThemes } from '../src/theme/appTheme';
+import {
+  AppearanceProvider,
+  useAppearance,
+} from '../src/providers/AppearanceProvider';
 import { AuthProvider } from '../src/providers/AuthProvider';
+import { MonetizationProvider } from '../src/providers/MonetizationProvider';
+import { AiAssistantProvider } from '../src/providers/AiAssistantProvider';
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
+function ThemedApp() {
+  const { mode, tokens } = useAppearance();
+
+  const navigationTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: tokens.bgPage,
+      card: tokens.bgCard,
+      text: tokens.textPrimary,
+      border: tokens.borderHairline,
+      primary: tokens.accent,
+    },
+  };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={theme}>
+    <ThemeProvider value={navigationTheme}>
+      <PaperProvider theme={appThemes[mode]}>
         <AuthProvider>
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
-          </Stack>
+          <MonetizationProvider>
+            <AiAssistantProvider>
+              <StatusBar style="light" backgroundColor={tokens.bgPage} />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: tokens.bgPage },
+                }}
+              >
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(app)" />
+              </Stack>
+            </AiAssistantProvider>
+          </MonetizationProvider>
         </AuthProvider>
       </PaperProvider>
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppearanceProvider>
+        <ThemedApp />
+      </AppearanceProvider>
     </GestureHandlerRootView>
   );
 }

@@ -1,12 +1,12 @@
-# BabySteps Closed-Test Instructions
+# PitterPatter Closed-Test Instructions
 
-Thank you for testing BabySteps. This is an early Android release for adult caregivers.
+Thank you for testing PitterPatter. This is an early Android release for adult caregivers.
 
 ## Install
 
 1. Open the Google Play opt-in link while signed into the invited Google account.
 2. Choose **Become a tester**.
-3. Install BabySteps from the Play Store link shown.
+3. Install PitterPatter from the Play Store link shown.
 4. Keep yourself opted in for the full test period.
 5. Enable normal Play Store updates.
 
@@ -20,17 +20,17 @@ Thank you for testing BabySteps. This is an early Android release for adult care
 
 ## What to use
 
-Use the app naturally for feeds, sleep and nappies. Please try Timeline, Stats, editing and deletion at least once.
+Use the app naturally for feeds, sleep and nappies. Please try Activity, Stats, editing and deletion at least once.
 
-BabySteps is not a medical device and must not be relied on for medical decisions, monitoring or emergencies.
+PitterPatter is not a medical device and must not be relied on for medical decisions, monitoring or emergencies.
 
 ## Report a problem
 
-Email `clb.bertram@googlemail.com` with:
+Email `codebertcreations@gmail.com` with:
 
 - Phone model.
 - Android version.
-- BabySteps version shown by Google Play.
+- PitterPatter version shown by Google Play.
 - What you did.
 - What you expected.
 - What happened.

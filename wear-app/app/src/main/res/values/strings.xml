@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">PitterPatter</string>
+    <string name="tile_label">Quick Care</string>
+    <string name="tile_description">Log nursing, bottles, sleep and nappies from your watch.</string>
+    <string name="nursing_tile_label">Nursing</string>
+    <string name="nursing_tile_description">Control nursing sides, pause and finish from your watch.</string>
+    <string name="bottle_tile_label">Bottle</string>
+    <string name="bottle_tile_description">Start and stop bottle timers from your watch.</string>
+    <string name="sleep_tile_label">Sleep</string>
+    <string name="sleep_tile_description">Start and stop sleep timers from your watch.</string>
+    <string name="nappy_tile_label">Nappy</string>
+    <string name="nappy_tile_description">Log wet, dirty or mixed nappies from your watch.</string>
+</resources>

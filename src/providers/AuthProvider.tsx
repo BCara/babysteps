@@ -9,10 +9,12 @@ import React, {
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import {
   getAuthErrorMessage,
+  reauthenticateWithGoogle,
   reauthenticateWithPassword,
   registerWithEmail,
   sendPasswordReset,
   signInWithEmail,
+  signInWithGoogle as firebaseSignInWithGoogle,
   signOut as firebaseSignOut,
   subscribeToAuthChanges,
 } from '../services/firebase/auth';
@@ -26,6 +28,7 @@ interface AuthContextValue {
   user: FirebaseAuthTypes.User | null;
   initializing: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<boolean>;
   register: (
     displayName: string,
     email: string,
@@ -33,7 +36,7 @@ interface AuthContextValue {
   ) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  deleteAccount: (password: string) => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
   errorMessage: (error: unknown) => string;
 }
 
@@ -66,6 +69,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signIn: async (email, password) => {
         await signInWithEmail(email, password);
       },
+      signInWithGoogle: async () => {
+        const credential = await firebaseSignInWithGoogle();
+        return Boolean(credential);
+      },
       register: async (displayName, email, password) => {
         const credential = await registerWithEmail(email, password);
         await credential.user.updateProfile({ displayName: displayName.trim() });
@@ -81,7 +88,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signOut: firebaseSignOut,
       deleteAccount: async password => {
         if (!user) throw new Error('You are not signed in.');
-        await reauthenticateWithPassword(user, password);
+
+        const usesPassword = user.providerData.some(
+          provider => provider.providerId === 'password',
+        );
+        const usesGoogle = user.providerData.some(
+          provider => provider.providerId === 'google.com',
+        );
+
+        if (usesPassword) {
+          if (!password) throw new Error('Enter your password to continue.');
+          await reauthenticateWithPassword(user, password);
+        } else if (usesGoogle) {
+          await reauthenticateWithGoogle(user);
+        } else {
+          throw new Error(
+            'This sign-in method cannot be verified in the app. Log out, sign in again, then retry.',
+          );
+        }
+
         await deleteUserData(user.uid);
         await user.delete();
       },

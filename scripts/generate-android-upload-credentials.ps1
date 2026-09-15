@@ -55,7 +55,7 @@ $recovery = @"
 BabySteps Android upload key
 
 Created: $((Get-Date).ToString('o'))
-Package: com.babysteps.app
+Package: com.cbcreations.babysteps
 Key alias: $alias
 Keystore password: $password
 Key password: $password

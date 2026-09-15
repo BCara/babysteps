@@ -29,6 +29,11 @@ export default function AppLayout() {
             name="onboarding"
             options={{ presentation: 'modal', gestureEnabled: false }}
           />
+          <Stack.Screen
+            name="quick-care"
+            options={{ presentation: 'modal', gestureEnabled: false }}
+          />
+          <Stack.Screen name="widget-settings" />
         </Stack>
       </EventProvider>
     </BabyProvider>

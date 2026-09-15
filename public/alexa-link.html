@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Link Alexa | PitterPatter</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/alexa-link.css">
+  </head>
+  <body>
+    <main class="alexa-shell">
+      <section class="alexa-card" aria-labelledby="page-title">
+        <p class="eyebrow">PitterPatter + Alexa</p>
+        <h1 id="page-title">Link your PitterPatter account</h1>
+        <p class="intro">
+          Allow Alexa to start and stop feed or sleep timers and log completed
+          feeds, sleeps and nappy changes for the baby currently selected in
+          PitterPatter.
+        </p>
+
+        <div id="request-error" class="notice error" role="alert" hidden></div>
+
+        <form id="link-form">
+          <label for="email">PitterPatter email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="username"
+            inputmode="email"
+            required
+          >
+
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+
+          <p class="privacy-note">
+            Your password is sent directly to Firebase Authentication and is
+            never stored by the Alexa linking service.
+          </p>
+
+          <div class="actions">
+            <button id="link-button" type="submit">Link Alexa</button>
+            <button id="deny-button" class="secondary" type="button">Cancel</button>
+          </div>
+        </form>
+
+        <p class="footer-note">
+          Alexa processes what you say. PitterPatter receives the resulting
+          command and values needed to save your care log.
+          <a href="/privacy.html" target="_blank" rel="noopener">Privacy policy</a>
+        </p>
+      </section>
+    </main>
+    <script src="/alexa-link.js" defer></script>
+  </body>
+</html>

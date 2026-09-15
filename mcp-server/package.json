@@ -1,19 +1,32 @@
 {
-  "name": "babysteps-mcp",
-  "version": "1.0.0",
-  "description": "MCP Server for BabySteps",
+  "name": "pitterpatter-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authenticated PitterPatter connector for ChatGPT and Claude",
   "type": "module",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node build/index.js"
+    "start": "node build/index.js",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:firestore": "npm run build && firebase emulators:exec --config firebase.test.json --project demo-pitterpatter-mcp --only firestore \"node --test test/firestore.test.mjs\"",
+    "package:plugin": "node scripts/package-plugin.mjs"
+  },
+  "engines": { "node": ">=22" },
+  "overrides": {
+    "gaxios": { "uuid": "^11.1.1" },
+    "teeny-request": { "uuid": "^11.1.1" }
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.0",
-    "firebase-admin": "^12.1.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "firebase-admin": "^14.3.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "@types/node": "^20.0.0"
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.3"
   }
 }

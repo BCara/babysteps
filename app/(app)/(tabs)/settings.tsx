@@ -1,11 +1,20 @@
 import { useState } from 'react';
-import { Alert, Linking, StyleSheet, ScrollView, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Platform,
+  StyleSheet,
+  ScrollView,
+  View,
+} from 'react-native';
 import {
   Button,
   Dialog,
   Divider,
   List,
   Portal,
+  Snackbar,
+  Switch,
   Text,
   TextInput,
   useTheme,
@@ -20,23 +29,63 @@ import {
   PRIVACY_URL,
   SUPPORT_EMAIL,
 } from '../../../src/constants/links';
+import PremiumCard from '../../../src/components/PremiumCard';
+import { useMonetization } from '../../../src/providers/MonetizationProvider';
+import { useAiAssistant } from '../../../src/providers/AiAssistantProvider';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const { user, signOut, deleteAccount, errorMessage } = useAuth();
   const { babies, selectedBaby, selectBaby, profile } = useBabies();
+  const {
+    privacyOptionsRequired,
+    showAdPrivacyOptions,
+    notice,
+    clearNotice,
+  } = useMonetization();
+  const {
+    status: aiStatus,
+    loading: aiLoading,
+    busy: aiBusy,
+    notice: aiNotice,
+    setConsent: setAiConsent,
+    clearNotice: clearAiNotice,
+  } = useAiAssistant();
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const usesPassword = Boolean(
+    user?.providerData.some(provider => provider.providerId === 'password'),
+  );
 
   const openUrl = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
     if (supported) await Linking.openURL(url);
   };
 
+  const openFeedbackEmail = () => {
+    const version = Constants.expoConfig?.version || '0.1.0';
+    const build = Constants.expoConfig?.android?.versionCode || 1;
+    const subject = encodeURIComponent('PitterPatter feedback');
+    const body = encodeURIComponent(
+      [
+        'What would you like to tell us?',
+        '',
+        '',
+        'Please avoid including a child’s real name or sensitive care notes.',
+        '',
+        '--- App details ---',
+        `PitterPatter ${version} (${build})`,
+        `Android ${Platform.Version}`,
+      ].join('\n'),
+    );
+
+    return openUrl(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
+  };
+
   const handleDelete = async () => {
-    if (!password) {
+    if (usesPassword && !password) {
       setDeleteError('Enter your password to continue.');
       return;
     }
@@ -44,7 +93,7 @@ export default function SettingsScreen() {
     setDeleting(true);
     setDeleteError('');
     try {
-      await deleteAccount(password);
+      await deleteAccount(usesPassword ? password : undefined);
       setDeleteDialogVisible(false);
     } catch (error) {
       setDeleteError(errorMessage(error));
@@ -58,6 +107,25 @@ export default function SettingsScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log out', onPress: signOut },
     ]);
+
+  const changeAiConsent = (enabled: boolean) => {
+    if (enabled) {
+      router.push('/(app)/(tabs)/assistant');
+      return;
+    }
+    Alert.alert(
+      'Turn off AI Assistant?',
+      'Future AI requests will be blocked and PitterPatter’s cached AI responses will be removed. Care logs and standard summaries are not affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Turn off',
+          style: 'destructive',
+          onPress: () => void setAiConsent(false).catch(() => undefined),
+        },
+      ],
+    );
+  };
 
   return (
     <SafeAreaView
@@ -106,17 +174,65 @@ export default function SettingsScreen() {
 
         <Divider />
 
+        {Platform.OS === 'android' ? (
+          <>
+            <List.Section>
+              <List.Subheader>Watch &amp; Home screen</List.Subheader>
+              <List.Item
+                title="Watch Tiles & widgets"
+                description="Configure watch controls and Home screen widgets"
+                left={props => <List.Icon {...props} icon="widgets-outline" />}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push('/(app)/widget-settings')}
+              />
+            </List.Section>
+            <Divider />
+          </>
+        ) : null}
+
+        <List.Section>
+          <List.Subheader>Plan</List.Subheader>
+          <PremiumCard />
+        </List.Section>
+
+        <Divider />
+
+        <List.Section>
+          <List.Subheader>Assistant</List.Subheader>
+          <List.Item
+            title="AI Assistant"
+            description={
+              aiStatus?.consented
+                ? `${aiStatus.usage.remaining} of ${aiStatus.usage.limit} generations remaining`
+                : aiStatus?.enabled
+                  ? 'Optional logged-record summaries and questions'
+                  : 'Not enabled for this test build'
+            }
+            left={props => <List.Icon {...props} icon="creation-outline" />}
+            right={() => (
+              <Switch
+                value={Boolean(aiStatus?.consented)}
+                disabled={
+                  aiLoading || aiBusy || !aiStatus || !aiStatus.enabled
+                }
+                onValueChange={changeAiConsent}
+                accessibilityLabel="Enable AI Assistant"
+              />
+            )}
+            onPress={() => changeAiConsent(!aiStatus?.consented)}
+            disabled={aiLoading || aiBusy || !aiStatus || !aiStatus.enabled}
+          />
+        </List.Section>
+
+        <Divider />
+
         <List.Section>
           <List.Subheader>Help and privacy</List.Subheader>
           <List.Item
             title="Send test feedback"
             description={SUPPORT_EMAIL}
             left={props => <List.Icon {...props} icon="message-text-outline" />}
-            onPress={() =>
-              openUrl(
-                `mailto:${SUPPORT_EMAIL}?subject=BabySteps%20test%20feedback`,
-              )
-            }
+            onPress={openFeedbackEmail}
           />
           <List.Item
             title="Privacy policy"
@@ -128,11 +244,16 @@ export default function SettingsScreen() {
             left={props => <List.Icon {...props} icon="account-remove-outline" />}
             onPress={() => openUrl(ACCOUNT_DELETION_URL)}
           />
-          <List.Item
-            title="App version"
-            description={`${Constants.expoConfig?.version || '0.1.0'} (${Constants.expoConfig?.android?.versionCode || 1})`}
-            left={props => <List.Icon {...props} icon="information-outline" />}
-          />
+          {privacyOptionsRequired ? (
+            <List.Item
+              title="Ad privacy choices"
+              description="Review or change your advertising consent"
+              left={props => (
+                <List.Icon {...props} icon="shield-account-outline" />
+              )}
+              onPress={showAdPrivacyOptions}
+            />
+          ) : null}
         </List.Section>
 
         <View style={styles.accountActions}>
@@ -161,18 +282,26 @@ export default function SettingsScreen() {
           <Dialog.Title>Delete your account?</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.deleteCopy}>
-              This permanently removes your BabySteps account. Sole-caregiver
+              This permanently removes your PitterPatter account. Sole-caregiver
               baby profiles and care logs are deleted; shared profiles remain for
-              their other caregivers. This cannot be undone.
+              their other caregivers. This cannot be undone. Deleting PitterPatter
+              does not cancel an active Google Play subscription; cancel it in
+              Google Play first to prevent another renewal.
             </Text>
-            <TextInput
-              label="Confirm your password"
-              mode="outlined"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              error={Boolean(deleteError)}
-            />
+            {usesPassword ? (
+              <TextInput
+                label="Confirm your password"
+                mode="outlined"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                error={Boolean(deleteError)}
+              />
+            ) : (
+              <Text variant="bodyMedium">
+                Continue with Google to confirm it is really you.
+              </Text>
+            )}
             {deleteError ? (
               <Text
                 variant="bodySmall"
@@ -195,11 +324,21 @@ export default function SettingsScreen() {
               loading={deleting}
               disabled={deleting}
             >
-              Permanently delete
+              {usesPassword ? 'Permanently delete' : 'Continue with Google'}
             </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
+      <Snackbar
+        visible={Boolean(notice || aiNotice)}
+        onDismiss={() => {
+          clearNotice();
+          clearAiNotice();
+        }}
+        duration={4000}
+      >
+        {notice || aiNotice}
+      </Snackbar>
     </SafeAreaView>
   );
 }

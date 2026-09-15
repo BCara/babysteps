@@ -13,6 +13,17 @@ import {
   UserProfile,
 } from '../services/firebase/users';
 import { useAuth } from './AuthProvider';
+import type {
+  QuickCarePreference,
+  QuickCarePreferences,
+  ConfigurableQuickCareKey,
+} from '../constants/quickCarePreferences';
+import type { HomeActionKey } from '../constants/careActions';
+import {
+  addCustomSleepLocation,
+  sanitizeCustomSleepLocations,
+  type CustomSleepLocation,
+} from '../utils/sleepLocation';
 
 interface BabyContextValue {
   babies: Baby[];
@@ -21,7 +32,17 @@ interface BabyContextValue {
   loading: boolean;
   error: string | null;
   selectBaby: (babyId: string) => Promise<void>;
+  updateHomeActions: (actions: HomeActionKey[]) => Promise<void>;
+  updateQuickCarePreference: (
+    careKey: ConfigurableQuickCareKey,
+    preference: QuickCarePreference,
+  ) => Promise<void>;
   addBaby: (baby: Omit<Baby, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
+  /** The caregiver's own sleep places, already sanitised for use. */
+  customSleepLocations: CustomSleepLocation[];
+  addSleepLocation: (label: string) => Promise<void>;
+  renameSleepLocation: (id: string, label: string) => Promise<void>;
+  removeSleepLocation: (id: string) => Promise<void>;
 }
 
 const BabyContext = createContext<BabyContextValue | null>(null);
@@ -87,6 +108,11 @@ export function BabyProvider({ children }: PropsWithChildren) {
   const selectedBaby =
     babies.find(baby => baby.id === profile?.activeBabyId) || babies[0] || null;
 
+  const customSleepLocations = useMemo(
+    () => sanitizeCustomSleepLocations(profile?.customSleepLocations),
+    [profile?.customSleepLocations],
+  );
+
   const value = useMemo<BabyContextValue>(
     () => ({
       babies,
@@ -101,14 +127,56 @@ export function BabyProvider({ children }: PropsWithChildren) {
         }
         await updateProfile(user.uid, { activeBabyId: babyId });
       },
+      updateHomeActions: async actions => {
+        if (!user) throw new Error('You are not signed in.');
+        await updateProfile(user.uid, { homeActions: actions });
+      },
+      updateQuickCarePreference: async (careKey, preference) => {
+        if (!user) throw new Error('You are not signed in.');
+        const quickCarePreferences: QuickCarePreferences = {
+          ...(profile?.quickCarePreferences || {}),
+          [careKey]: preference,
+        };
+        await updateProfile(user.uid, { quickCarePreferences });
+      },
       addBaby: async baby => {
         if (!user) throw new Error('You are not signed in.');
         return createBaby(user.uid, baby);
+      },
+      customSleepLocations,
+      addSleepLocation: async label => {
+        if (!user) throw new Error('You are not signed in.');
+        const result = addCustomSleepLocation(customSleepLocations, label);
+        if (result.error) throw new Error(result.error);
+        await updateProfile(user.uid, {
+          customSleepLocations: result.locations,
+        });
+      },
+      renameSleepLocation: async (id, label) => {
+        if (!user) throw new Error('You are not signed in.');
+        const trimmed = label.trim();
+        if (!trimmed) throw new Error('Give this sleep place a name.');
+        // The id is deliberately left alone so every sleep already logged
+        // against this place follows the new name.
+        await updateProfile(user.uid, {
+          customSleepLocations: customSleepLocations.map(location =>
+            location.id === id ? { ...location, label: trimmed } : location,
+          ),
+        });
+      },
+      removeSleepLocation: async id => {
+        if (!user) throw new Error('You are not signed in.');
+        await updateProfile(user.uid, {
+          customSleepLocations: customSleepLocations.filter(
+            location => location.id !== id,
+          ),
+        });
       },
     }),
     [
       babies,
       babiesLoaded,
+      customSleepLocations,
       error,
       profile,
       profileLoaded,

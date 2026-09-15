@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "BabySteps",
+    "name": "PitterPatter",
     "slug": "babysteps",
     "owner": "cbert89",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,16 +15,15 @@
       "bundleIdentifier": "com.babysteps.app"
     },
     "android": {
-      "package": "com.babysteps.app",
-      "versionCode": 1,
+      "package": "com.cbcreations.babysteps",
+      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": true,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.VIBRATE"
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -36,7 +35,20 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withQuickCareWidget",
+      "./plugins/withWearBridge",
       "@react-native-firebase/app",
+      "@react-native-firebase/app-check",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow PitterPatter to choose an appointment or immunisation image for optional field extraction.",
+          "cameraPermission": "Allow PitterPatter to photograph an appointment or immunisation record for optional field extraction.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-calendar",
       [
         "expo-splash-screen",
         {

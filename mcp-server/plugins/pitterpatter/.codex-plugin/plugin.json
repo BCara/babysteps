@@ -1,0 +1,24 @@
+{
+  "name": "pitterpatter",
+  "version": "0.1.0",
+  "description": "Review baby care records and log completed activities through your PitterPatter account.",
+  "author": {
+    "name": "CodeBert Creations"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PitterPatter",
+    "shortDescription": "Your baby's care records in your assistant.",
+    "longDescription": "Choose a baby, review recent care records and log completed feeds, sleeps, nappies, pumping, tummy time and baths with your existing PitterPatter account.",
+    "developerName": "CodeBert Creations",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "brandColor": "#FFB5A7",
+    "websiteURL": "https://babysteps-cbert.web.app",
+    "privacyPolicyURL": "https://babysteps-cbert.web.app/privacy.html",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": ["Summarise today's care records.", "When was the last bottle?", "Log a wet nappy for my baby."]
+  },
+  "mcpServers": { "pitterpatter": { "type": "http", "url": "http://127.0.0.1:8787/mcp" } }
+}

@@ -1,0 +1,9 @@
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.DeviceDefault">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#15131F</item>
+        <item name="android:colorAccent">#FFB5A7</item>
+    </style>
+</resources>
+

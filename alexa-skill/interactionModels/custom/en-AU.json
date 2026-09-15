@@ -1,0 +1,260 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "pitterpatter",
+      "intents": [
+        {
+          "name": "StartFeedIntent",
+          "slots": [
+            {
+              "name": "FeedType",
+              "type": "BABYSTEPS_FEED_TYPE"
+            },
+            {
+              "name": "BreastSide",
+              "type": "BABYSTEPS_BREAST_SIDE"
+            }
+          ],
+          "samples": [
+            "start a feed",
+            "start feeding",
+            "start a {FeedType} feed",
+            "start feeding on the {BreastSide}",
+            "baby is feeding",
+            "the baby is feeding"
+          ]
+        },
+        {
+          "name": "StopFeedIntent",
+          "slots": [],
+          "samples": [
+            "stop the feed",
+            "stop feeding",
+            "finish the feed",
+            "the feed is finished",
+            "baby has finished feeding"
+          ]
+        },
+        {
+          "name": "LogFeedIntent",
+          "slots": [
+            {
+              "name": "Duration",
+              "type": "AMAZON.DURATION"
+            },
+            {
+              "name": "FeedType",
+              "type": "BABYSTEPS_FEED_TYPE"
+            },
+            {
+              "name": "BreastSide",
+              "type": "BABYSTEPS_BREAST_SIDE"
+            }
+          ],
+          "samples": [
+            "log a feed",
+            "record a feed",
+            "log a {Duration} feed",
+            "log a {Duration} {FeedType} feed",
+            "record a {FeedType} feed lasting {Duration}",
+            "log a {Duration} feed on the {BreastSide}",
+            "baby fed for {Duration}"
+          ]
+        },
+        {
+          "name": "StartSleepIntent",
+          "slots": [
+            {
+              "name": "SleepType",
+              "type": "BABYSTEPS_SLEEP_TYPE"
+            }
+          ],
+          "samples": [
+            "start sleep",
+            "start a sleep",
+            "start a {SleepType}",
+            "baby is asleep",
+            "baby has gone to sleep",
+            "the baby is sleeping"
+          ]
+        },
+        {
+          "name": "StopSleepIntent",
+          "slots": [],
+          "samples": [
+            "stop sleep",
+            "stop the sleep",
+            "baby woke up",
+            "baby is awake",
+            "the baby woke up",
+            "finish the nap"
+          ]
+        },
+        {
+          "name": "LogSleepIntent",
+          "slots": [
+            {
+              "name": "Duration",
+              "type": "AMAZON.DURATION"
+            },
+            {
+              "name": "SleepType",
+              "type": "BABYSTEPS_SLEEP_TYPE"
+            }
+          ],
+          "samples": [
+            "log a sleep",
+            "record a sleep",
+            "log {Duration} of sleep",
+            "log a {Duration} {SleepType}",
+            "record a {SleepType} lasting {Duration}",
+            "baby slept for {Duration}"
+          ]
+        },
+        {
+          "name": "LogDiaperIntent",
+          "slots": [
+            {
+              "name": "Condition",
+              "type": "BABYSTEPS_NAPPY_CONDITION"
+            }
+          ],
+          "samples": [
+            "log a nappy",
+            "log a {Condition} nappy",
+            "record a {Condition} nappy",
+            "log a {Condition} diaper",
+            "record a nappy change",
+            "changed a {Condition} nappy",
+            "baby had a {Condition} nappy"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "BABYSTEPS_FEED_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "breast",
+                "synonyms": [
+                  "breastfeed",
+                  "breastfeeding",
+                  "nursing"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "bottle",
+                "synonyms": [
+                  "bottle feed",
+                  "formula"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BABYSTEPS_BREAST_SIDE",
+          "values": [
+            {
+              "name": {
+                "value": "left"
+              }
+            },
+            {
+              "name": {
+                "value": "right"
+              }
+            },
+            {
+              "name": {
+                "value": "both"
+              }
+            }
+          ]
+        },
+        {
+          "name": "BABYSTEPS_SLEEP_TYPE",
+          "values": [
+            {
+              "name": {
+                "value": "nap",
+                "synonyms": [
+                  "day sleep"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "contact nap"
+              }
+            },
+            {
+              "name": {
+                "value": "night",
+                "synonyms": [
+                  "night sleep",
+                  "bedtime"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BABYSTEPS_NAPPY_CONDITION",
+          "values": [
+            {
+              "name": {
+                "value": "wet",
+                "synonyms": [
+                  "wee"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "dirty",
+                "synonyms": [
+                  "soiled",
+                  "poo",
+                  "poopy"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "both",
+                "synonyms": [
+                  "wet and dirty",
+                  "mixed"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -2,6 +2,7 @@
   "name": "babysteps-functions",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
@@ -10,16 +11,23 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "ask-sdk-core": "^2.14.0",
+    "ask-sdk-express-adapter": "^2.14.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
     "firebase-admin": "^12.1.0",
     "firebase-functions": "^5.0.1",
-    "ask-sdk-core": "^2.14.0",
-    "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "google-auth-library": "^10.9.1",
+    "js-tiktoken": "^1.0.21",
+    "openai": "^7.5.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/cors": "^2.8.17"
+    "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "fast-xml-parser": "^5.10.1"
   },
   "private": true
 }

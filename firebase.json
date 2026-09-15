@@ -4,6 +4,10 @@
       "emailPassword": true
     }
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
   "firestore": {
     "database": "(default)",
     "location": "australia-southeast1",
@@ -16,6 +20,29 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/alexa/skill",
+        "function": {
+          "functionId": "alexaEndpoint",
+          "region": "australia-southeast1"
+        }
+      },
+      {
+        "source": "/alexa/oauth/authorize",
+        "function": {
+          "functionId": "alexaAuthorize",
+          "region": "australia-southeast1"
+        }
+      },
+      {
+        "source": "/alexa/oauth/token",
+        "function": {
+          "functionId": "alexaToken",
+          "region": "australia-southeast1"
+        }
+      }
     ],
     "headers": [
       {
@@ -31,7 +58,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+            "value": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com; base-uri 'none'; frame-ancestors 'none'; form-action 'self' https://alexa.amazon.co.jp https://layla.amazon.com https://pitangui.amazon.com"
           }
         ]
       }

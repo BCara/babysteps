@@ -13,7 +13,7 @@ import { useAuth } from '../../src/providers/AuthProvider';
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { signIn, resetPassword, errorMessage } = useAuth();
+  const { signIn, signInWithGoogle, resetPassword, errorMessage } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -48,6 +48,18 @@ export default function LoginScreen() {
     try {
       await resetPassword(email);
       setResetSent(true);
+    } catch (nextError) {
+      setError(errorMessage(nextError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await signInWithGoogle();
     } catch (nextError) {
       setError(errorMessage(nextError));
     } finally {
@@ -111,12 +123,34 @@ export default function LoginScreen() {
         >
           Log in
         </Button>
+
+        {Platform.OS === 'android' ? (
+          <>
+            <View style={styles.dividerRow}>
+              <View style={styles.divider} />
+              <Text variant="bodySmall" style={styles.dividerText}>
+                or
+              </Text>
+              <View style={styles.divider} />
+            </View>
+            <Button
+              mode="outlined"
+              icon="google"
+              onPress={handleGoogleLogin}
+              disabled={busy}
+              contentStyle={styles.buttonContent}
+            >
+              Continue with Google
+            </Button>
+          </>
+        ) : null}
+
         <Button mode="text" onPress={handleReset} disabled={busy}>
           Forgot password?
         </Button>
 
         <View style={styles.signupRow}>
-          <Text>New to BabySteps?</Text>
+          <Text>New to PitterPatter?</Text>
           <Link href="/(auth)/register" asChild>
             <Button mode="text" compact>
               Create account
@@ -160,6 +194,20 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     minHeight: 50,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+  },
+  divider: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#9CA3AF',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    opacity: 0.65,
   },
   signupRow: {
     marginTop: 20,

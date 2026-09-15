@@ -15,11 +15,7 @@ import DateTimePicker, {
 import { router } from 'expo-router';
 import { useBabies } from '../../src/providers/BabyProvider';
 
-const defaultBirthDate = () => {
-  const date = new Date();
-  date.setMonth(date.getMonth() - 3);
-  return date;
-};
+const defaultBirthDate = () => new Date();
 
 export default function OnboardingScreen() {
   const theme = useTheme();
@@ -135,7 +131,7 @@ export default function OnboardingScreen() {
         </Button>
 
         <Text variant="bodySmall" style={styles.privacyNote}>
-          BabySteps stores this information securely in your private account. It
+          PitterPatter stores this information securely in your private account. It
           is not used for advertising.
         </Text>
       </ScrollView>

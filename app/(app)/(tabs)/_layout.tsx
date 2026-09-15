@@ -9,6 +9,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        freezeOnBlur: true,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {
@@ -31,9 +32,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="timeline"
+        name="activity"
         options={{
-          title: 'Timeline',
+          title: 'Activity',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
               name="format-list-bulleted"
@@ -49,6 +50,19 @@ export default function TabsLayout() {
           title: 'Summary',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="chart-box-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="assistant"
+        options={{
+          title: 'Assistant',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="creation-outline"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />

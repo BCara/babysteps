@@ -15,8 +15,32 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/babies/$(babyId)).data.authorizedCaregivers;
     }
 
+    function validSleepPlace(place) {
+      return place is map && place.keys().hasOnly(['id', 'label'])
+        && place.id is string && place.id.matches('custom:[a-z0-9]+(-[a-z0-9]+)*')
+        && place.id.size() <= 64
+        && place.label is string && place.label.size() > 0 && place.label.size() <= 24;
+    }
+
+    function validSleepPlaces(places) {
+      return places is list && places.size() <= 5
+        && (places.size() < 1 || validSleepPlace(places[0]))
+        && (places.size() < 2 || validSleepPlace(places[1]))
+        && (places.size() < 3 || validSleepPlace(places[2]))
+        && (places.size() < 4 || validSleepPlace(places[3]))
+        && (places.size() < 5 || validSleepPlace(places[4]));
+    }
+
     match /users/{userId} {
       allow create: if ownsUser(userId)
+        && request.resource.data.keys().hasOnly([
+          'displayName',
+          'email',
+          'babyIds',
+          'activeBabyId',
+          'createdAt',
+          'updatedAt'
+        ])
         && request.resource.data.babyIds == []
         && request.resource.data.activeBabyId == null;
 
@@ -24,9 +48,47 @@ service cloud.firestore {
 
       allow update: if ownsUser(userId)
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'babyIds', 'activeBabyId', 'updatedAt']);
+          .hasOnly(['displayName', 'babyIds', 'activeBabyId', 'homeActions', 'quickCarePreferences', 'customSleepLocations', 'updatedAt'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['customSleepLocations'])
+          || validSleepPlaces(request.resource.data.customSleepLocations));
 
       allow delete: if ownsUser(userId);
+    }
+
+    match /entitlements/{userId} {
+      allow read: if ownsUser(userId);
+      allow create, update, delete: if false;
+    }
+
+    match /playPurchases/{purchaseId} {
+      allow read, write: if false;
+    }
+
+    match /playRtdnEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    // AI consent, quotas, idempotency caches and operational totals are
+    // server-owned. The Android app can reach them only through authenticated,
+    // App Check-enforced callable functions.
+    match /aiConsents/{userId} {
+      allow read, write: if false;
+    }
+
+    match /aiUsage/{userId} {
+      allow read, write: if false;
+    }
+
+    match /aiRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /aiSummaryCache/{cacheId} {
+      allow read, write: if false;
+    }
+
+    match /aiOperations/{operationId} {
+      allow read, write: if false;
     }
 
     match /babies/{babyId} {
@@ -56,7 +118,11 @@ service cloud.firestore {
 
         allow create: if isAuthorizedCaregiver(babyId)
           && request.resource.data.loggedBy == request.auth.uid
-          && request.resource.data.type in ['feed', 'sleep', 'diaper']
+          && request.resource.data.type in [
+            'feed', 'sleep', 'diaper', 'pumping', 'solids', 'growth',
+            'potty', 'temperature', 'medication', 'tummyTime', 'bath',
+            'milestone', 'symptom', 'appointment', 'immunization', 'teething'
+          ]
           && request.resource.data.source == 'app'
           && request.resource.data.deletedAt == null;
 

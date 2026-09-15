@@ -1,0 +1,9 @@
+{
+  "name": "pitterpatter",
+  "version": "0.1.0",
+  "description": "Review baby care records and log completed activities through your PitterPatter account.",
+  "author": { "name": "CodeBert Creations" },
+  "homepage": "https://babysteps-cbert.web.app",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

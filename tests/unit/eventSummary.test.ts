@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BabyEvent } from '../../src/services/firebase/events';
 import {
+  eventsInSummaryPeriod,
   getEventDurationMinutes,
   isSameLocalDay,
   summarizeEvents,
@@ -75,5 +76,28 @@ describe('event summaries', () => {
         new Date('2026-07-29T01:00:00+10:00'),
       ),
     ).toBe(false);
+  });
+
+  it('distinguishes today from the rolling last 24 hours', () => {
+    const now = new Date(2026, 8, 2, 3, 59);
+    const yesterdayEvening = baseEvent({
+      startTime: new Date(2026, 8, 1, 20, 0),
+    });
+    const today = baseEvent({
+      startTime: new Date(2026, 8, 2, 2, 0),
+    });
+    const tooOld = baseEvent({
+      startTime: new Date(2026, 8, 1, 3, 58),
+    });
+
+    expect(eventsInSummaryPeriod([yesterdayEvening, today, tooOld], 'today', now))
+      .toEqual([today]);
+    expect(
+      eventsInSummaryPeriod(
+        [yesterdayEvening, today, tooOld],
+        'last24Hours',
+        now,
+      ),
+    ).toEqual([yesterdayEvening, today]);
   });
 });

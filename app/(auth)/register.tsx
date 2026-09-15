@@ -12,7 +12,7 @@ import { useAuth } from '../../src/providers/AuthProvider';
 
 export default function RegisterScreen() {
   const theme = useTheme();
-  const { register, errorMessage } = useAuth();
+  const { register, signInWithGoogle, errorMessage } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +38,18 @@ export default function RegisterScreen() {
     setError('');
     try {
       await register(name, email, password);
+    } catch (nextError) {
+      setError(errorMessage(nextError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await signInWithGoogle();
     } catch (nextError) {
       setError(errorMessage(nextError));
     } finally {
@@ -112,6 +124,27 @@ export default function RegisterScreen() {
           Create account
         </Button>
 
+        {Platform.OS === 'android' ? (
+          <>
+            <View style={styles.dividerRow}>
+              <View style={styles.divider} />
+              <Text variant="bodySmall" style={styles.dividerText}>
+                or
+              </Text>
+              <View style={styles.divider} />
+            </View>
+            <Button
+              mode="outlined"
+              icon="google"
+              onPress={handleGoogleRegister}
+              disabled={busy}
+              contentStyle={styles.buttonContent}
+            >
+              Continue with Google
+            </Button>
+          </>
+        ) : null}
+
         <View style={styles.loginRow}>
           <Text>Already have an account?</Text>
           <Link href="/(auth)/login" asChild>
@@ -150,6 +183,20 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     minHeight: 50,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+  },
+  divider: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#9CA3AF',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    opacity: 0.65,
   },
   loginRow: {
     marginTop: 20,

@@ -1,10 +1,10 @@
-# BabySteps Android Implementation Plan
+# PitterPatter Android Implementation Plan
 
 **Status:** Initial Android test release in implementation
-**Last updated:** 28 July 2026
+**Last updated:** 24 August 2026
 **Release target:** Google Play closed test
 **Initial test window:** At least 14 continuous days
-**Voice integrations:** Deferred until the Android test establishes the core workflow
+**Optional integrations:** Voice, Alexa, paired Wear OS and bounded AI are implemented in source and require exact-build verification
 
 ## 1. Outcome
 
@@ -13,17 +13,17 @@ The first release is a small, dependable Android app that an adult caregiver can
 1. Create and recover an account.
 2. Add a baby profile.
 3. Log feeds, sleep and nappies.
-4. See a live timeline and seven-day summary.
+4. See a live activity list and seven-day summary.
 5. Correct or remove a mistaken log.
 6. Delete the account and associated app data.
 
-The release is intended to generate real usage evidence. It is not a medical device, must not be relied on for emergency or clinical decisions, and does not include Alexa, Google Assistant, subscriptions, adverts or open-ended AI.
+The release is intended to generate real usage evidence. It is not a medical device and must not be relied on for emergency or clinical decisions. Current source includes optional voice entry, an Alexa development skill, paired-phone Wear OS Quick Care and a bounded, read-only AI Assistant. The Assistant is not an open-ended parenting service: it can describe only the selected baby's logged records and cannot write records or provide medical advice. Monetisation supports an ad-backed Free tier, an ad-free Premium subscription and permanent legacy access.
 
 ## 2. Release boundary
 
 ### In scope
 
-- Android package `com.babysteps.app`.
+- Android package `com.cbcreations.babysteps`.
 - Expo SDK 54 / Android target API 36.
 - Email/password Firebase Authentication.
 - Password reset.
@@ -32,7 +32,7 @@ The release is intended to generate real usage evidence. It is not a medical dev
 - Bottle or breast feed logs.
 - Wet, dirty or both nappy logs.
 - Persistent sleep start/stop timer.
-- Timeline grouped by day.
+- Activity list grouped by day.
 - Edit and soft-delete events.
 - Daily and seven-day totals.
 - In-app support, privacy-policy and account-deletion routes.
@@ -40,16 +40,25 @@ The release is intended to generate real usage evidence. It is not a medical dev
 - Google Play listing copy, artwork, policy declarations and tester guidance.
 - Signed Android App Bundle for Google Play.
 - A two-week usage-led test plan.
+- Non-personalised anchored banners plus at most one interstitial per 24 hours
+  for Free accounts, shown only after a completed log.
+- Google Play Premium subscription purchase, restore and management.
+- Server-controlled Free, Premium and permanent legacy entitlements.
+- Optional in-app speech recognition with review before a care record is saved.
+- Optional Alexa development skill and paired-phone Wear OS Quick Care path.
+- Consent-gated Assistant tab with read-only questions, Today and Last 7 days summaries, evidence and allowance display.
+- Five lifetime successful AI generations for Free accounts and 100 per UTC month for Premium and Founding Premium.
+- Firebase App Check enforcement, server-owned AI quota/cache records and an operator kill switch.
 
 ### Deferred
 
-- Alexa and all other voice integrations.
-- Shared caregiver invitations and role transfer.
+- Shared caregiver invitations.
 - iOS release.
-- Medication, medical measurements or health recommendations.
-- Push notifications, widgets and wearables.
-- Photos, milestones and exports.
-- Advertising, subscriptions and payments.
+- Medical diagnosis, symptom assessment, dosage or treatment recommendations.
+- General parenting advice or external/web knowledge in the Assistant.
+- AI-created, edited or deleted care records.
+- Persistent AI chat history or conversational memory.
+- Push notifications and home-screen widgets.
 - Raw analytics or crash-reporting SDKs.
 - Public production launch.
 
@@ -70,6 +79,8 @@ Deferred work must not be included in the production Android bundle unless it is
 
 ## 4. Architecture
 
+Core care screens use Firebase Auth and Firestore directly under security rules. The Assistant adds Firebase Functions in `australia-southeast1`, Play Integrity-backed App Check, server-only Firestore collections and an OpenAI Responses API call whose key is supplied through Secret Manager.
+
 ```text
 Android app
   ├─ Expo Router screens
@@ -87,7 +98,7 @@ Firebase project: babysteps-cbert
   └─ Hosting: support, privacy and deletion pages
 ```
 
-The first test release writes directly from the authenticated app to Firestore under strict rules. A command-service abstraction can be introduced before voice or broader multi-caregiver support.
+Core care records continue to write directly from the authenticated app to Firestore under strict rules. The Assistant reads records server-side through authenticated, App Check-enforced callables; clients cannot read or write AI consent, quota, cache, request or telemetry collections directly.
 
 ## 5. Data model
 
@@ -152,7 +163,7 @@ Tasks:
 - Upgrade to Expo SDK 54.
 - Remove unimplemented voice, subscription and widget dependencies from the release path.
 - Add valid application, adaptive-icon and splash assets.
-- Register package `com.babysteps.app` in Firebase.
+- Register package `com.cbcreations.babysteps` in Firebase.
 - Add the real `google-services.json`.
 - Configure Android version `0.1.0`, version code `1`, API 36.
 - Make Expo Doctor, TypeScript, Functions and MCP builds pass.
@@ -186,7 +197,7 @@ Exit criteria:
 - A new user can complete onboarding.
 - All three event types persist and reappear after restart.
 - A running sleep remains visible after restart.
-- Timeline and summaries reflect the same records.
+- Activity and summaries reflect the same records.
 - An event can be edited and removed.
 
 ### Milestone C — Privacy and backend controls
@@ -198,7 +209,7 @@ Tasks:
 - Restrict profiles, babies and events by authenticated UID.
 - Validate allowed event types, source and `loggedBy`.
 - Keep ownership fields immutable during updates.
-- Support sole-caregiver account deletion.
+- Support account deletion for sole and shared caregivers.
 - Add rule tests for allowed and denied operations.
 - Host support, privacy and account-deletion pages.
 - Link those pages from app Settings.
@@ -208,7 +219,7 @@ Exit criteria:
 - Rule emulator suite passes.
 - Cross-account reads and writes fail.
 - Public pages return HTTP 200 over HTTPS.
-- In-app account deletion removes the sole-caregiver dataset and auth account.
+- In-app account deletion removes the auth account, preserves shared baby profiles for remaining caregivers and deletes baby data when the account is the last caregiver.
 
 ### Milestone D — Google Play release package
 
@@ -279,7 +290,7 @@ Exit criteria:
 ### Release-blocking severity
 
 - **S0 Security/privacy:** data exposed to the wrong account, secrets exposed, deletion falsely confirms, or policy mismatch. Stop release immediately.
-- **S1 Core failure:** cannot register, log an event, stop sleep, read timeline or launch reliably. Fix before distributing.
+- **S1 Core failure:** cannot register, log an event, stop sleep, read the activity list or launch reliably. Fix before distributing.
 - **S2 Material usability/data issue:** edit failure, inaccurate summary, poor reconnect, inaccessible control. Fix during test unless a safe workaround exists.
 - **S3 Minor:** cosmetic copy, spacing or low-impact inconvenience. Record and prioritise from usage.
 
@@ -319,12 +330,13 @@ Feature requests do not automatically enter the two-week test. Only security, re
 ## 10. Known initial limitations
 
 - The private test is designed primarily for one caregiver per baby.
-- Shared-caregiver invitation and ownership transfer are not available.
-- Account deletion is automated only for sole-caregiver accounts.
+- Shared-caregiver invitations are not available.
+- Account deletion automatically removes the departing account from shared profiles and preserves their records for remaining caregivers; last-caregiver profiles and records are deleted.
 - Event deletion is soft deletion during ordinary app use.
 - No offline-first conflict-resolution promise is made.
-- Summaries are informational and are not clinical calculations.
-- Voice input is not included.
+- Deterministic and AI summaries are informational and are not clinical calculations.
+- Voice entry is optional, depends on the configured recognition provider and always requires confirmation before save.
+- AI questions are stateless, limited to a 30-day record window and unavailable offline or while the operator kill switch is active.
 
 ## 11. Definition of the initial test release
 
@@ -337,10 +349,15 @@ The build is ready for the Google Play closed test when:
 - Baby onboarding and selection work.
 - Feed, nappy and sleep records persist.
 - Sleep survives restart.
-- Timeline, edit, deletion and summaries work.
+- Activity, edit, deletion and summaries work.
 - Account deletion is verified.
 - Security tests and static checks pass.
 - Store assets and console answers are complete.
 - Privacy and deletion URLs are live.
+- The OpenAI secret is stored only in Secret Manager; the API key is absent from the Android bundle.
+- Play Integrity-backed App Check is registered for the exact Play-signed build, with debug access confined to development builds.
+- AI consent, quota, caching, safety redirects, failure refunds, access controls and account-deletion cleanup pass their tests.
+- The privacy policy and Play Data Safety declarations describe the actual AI and voice paths in the exact AAB.
+- AI remains unadvertised publicly until the closed-test evidence, privacy copy, App Check configuration and Play declarations match that AAB.
 - README contains the repeatable two-week test programme.
 - Remaining Play Console actions are administrative rather than missing implementation.

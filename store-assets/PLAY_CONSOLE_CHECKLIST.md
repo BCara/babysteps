@@ -3,24 +3,25 @@
 ## 1. Create the application
 
 - Open Play Console and choose **Create app**.
-- App name: **BabySteps: Baby Care Log**.
+- App name: **PitterPatter: Baby Care Log**.
 - Default language: **English (Australia) — en-AU**.
 - App or game: **App**.
 - Free or paid: **Free**.
 - Accept the required declarations only after reading the current wording.
 
-The Android package in the first uploaded bundle is permanent: `com.babysteps.app`.
+The Android package for the replacement bundle is `com.cbcreations.babysteps`.
 
 ## 2. App integrity
 
 - Enable Google Play App Signing.
 - Keep the upload key or EAS-managed credentials recoverable.
-- Confirm package: `com.babysteps.app`.
-- Confirm version name: `0.1.0`.
-- Confirm version code: `1`.
+- Confirm package: `com.cbcreations.babysteps`.
+- Confirm version name: `0.2.0` for the current source candidate.
+- Confirm version code: `2` for the current source candidate.
 - Confirm target SDK/API: `36`.
 - Record the Play app-signing SHA-256 certificate after the first upload.
-- If Firebase later uses Google sign-in, App Check or certificate-bound APIs, add the Play signing SHA fingerprints there.
+- Add the Google Play app-signing SHA-1 fingerprint to the Firebase Android app before testing Google sign-in from a Play-installed build.
+- Register `com.cbcreations.babysteps` with the Play Integrity provider in Firebase App Check and verify the exact Play-signed build can call the Assistant.
 
 ## 3. Store listing
 
@@ -37,7 +38,10 @@ The Android package in the first uploaded bundle is permanent: `com.babysteps.ap
 Complete every section shown by the current console:
 
 - Privacy policy: `https://babysteps-cbert.web.app/privacy.html`
-- Ads: **No**
+- Ads: **Yes.** Free accounts can receive non-personalised anchored banners and
+  at most one interstitial per 24 hours after completing a log; Premium and
+  legacy accounts are ad-free.
+- In-app products: **Yes.** `babysteps_premium` is an optional auto-renewing subscription with monthly and annual base plans.
 - App access: **All functionality requires an account.** Supply a reusable review account in Play Console when requested. Do not place review credentials in this repository.
 - Target audience: adult caregivers; the app is not designed for children.
 - Content rating: complete the IARC questionnaire truthfully. No violence, sexual content, gambling, controlled substances or user-to-user public content is implemented.
@@ -46,7 +50,9 @@ Complete every section shown by the current console:
 - Government app: **No**
 - News app: **No**
 - Financial features: **None**
-- Health declaration: BabySteps records routine care but offers no medical advice, diagnosis or clinical monitoring. Answer the console’s current questions literally.
+- Health declaration: PitterPatter records routine care but offers no medical advice, diagnosis or clinical monitoring. Answer the console’s current questions literally.
+- AI-generated content: if present in the exact AAB, declare the optional read-only Assistant and its fixed medical/general-parenting redirects using the current console wording.
+- Data Safety for an AI-enabled build: declare the typed question and minimum structured Health info sent to OpenAI as a service provider, plus optional microphone processing by the speech-recognition provider. Re-audit every included SDK rather than relying on the draft alone.
 
 ## 5. Review account
 
@@ -105,6 +111,9 @@ After the required period:
 - Build from a known Git commit.
 - Save AAB checksum and build log.
 - Verify privacy/Data safety still match the bundle.
+- Verify the Assistant consent version, privacy provider/retention copy, App Check enforcement, server kill switch and quotas against the deployed backend.
+- Confirm the OpenAI key is absent from the AAB and exists only as a Firebase Functions secret.
+- Keep the gated Assistant listing copy unpublished unless the exact AAB has passed the AI closed-test checklist in `docs/AI_ASSISTANT_SETUP.md`.
 - Verify support and deletion pages are live.
 - Install and run the smoke test.
 - Add concise release notes.
@@ -114,9 +123,16 @@ After the required period:
 - Pay/confirm Play developer registration if not already complete.
 - Complete identity or organisation verification.
 - Accept Play agreements and declarations.
-- Add payment profile details if the console requires them, even for a free app.
+- Add and verify the payments profile required to sell subscriptions.
+- Create and activate the `babysteps_premium` monthly and annual base plans.
+- Configure Android Publisher API permissions and Play Billing real-time developer notifications using `docs/MONETIZATION_PUBLISHING.md`.
+- Create the AdMob app, banner and interstitial units, set the interstitial
+  frequency cap to one impression per day, disable high-engagement ads, and
+  publish the required Privacy & messaging consent forms.
 - Create and maintain tester groups.
 - Store review credentials securely in Play Console.
+- Configure the dedicated OpenAI project with a US$25 monthly hard limit and operational alerts at 50%, 80% and 100%.
+- Set the Firebase `OPENAI_API_KEY` secret, register Play Integrity App Check and explicitly enable `AI_ENABLED` only after the release gate passes.
 - Submit production-access and production-review applications.
 
 These are console/identity actions and cannot be completed safely from source code.

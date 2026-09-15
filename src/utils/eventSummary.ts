@@ -7,6 +7,27 @@ export interface EventSummary {
   activeSleeps: number;
 }
 
+export type EventSummaryPeriod = 'today' | 'last24Hours';
+
+export const eventsInSummaryPeriod = (
+  events: BabyEvent[],
+  period: EventSummaryPeriod,
+  now = new Date(),
+) => {
+  const start =
+    period === 'today'
+      ? new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        )
+      : new Date(now.getTime() - 24 * 60 * 60 * 1_000);
+
+  return events.filter(
+    event => event.startTime >= start && event.startTime <= now,
+  );
+};
+
 export const getEventDurationMinutes = (event: BabyEvent, now = new Date()) => {
   if (event.durationMinutes !== undefined) {
     return Math.max(0, event.durationMinutes);

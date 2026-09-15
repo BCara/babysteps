@@ -1,15 +1,15 @@
-# BabySteps
+# PitterPatter
 
-BabySteps is an Android baby-care log for adult caregivers. The first private release records feeds, sleep and nappies in Firebase and shows a live timeline and simple summaries.
+PitterPatter is an Android baby-care log for adult caregivers. It records feeds, sleep, nappies and optional everyday, growth and health records in Firebase, with a customisable Home screen, live activity list and simple summaries.
 
-This repository is intentionally Android-first. Alexa, Google Assistant and in-app voice are not part of the initial Google Play test.
+This repository is Android-first. Current source includes optional in-app speech recognition with a review-before-save step; the exact signed AAB must be re-audited before making voice declarations. An optional Alexa custom skill is maintained separately and writes structured commands into the same PitterPatter care log after account linking.
 
 ## Release status
 
-- App name: BabySteps
-- Android package: `com.babysteps.app`
-- App version: `0.1.0`
-- Android version code: `1`
+- App name: PitterPatter
+- Android package: `com.cbcreations.babysteps`
+- Source app version: `0.2.0`
+- Source Android version code: `2`
 - Target API: 36
 - Firebase project: `babysteps-cbert`
 - Firestore location: `australia-southeast1`
@@ -18,26 +18,43 @@ This repository is intentionally Android-first. Alexa, Google Assistant and in-a
 - Account deletion: <https://babysteps-cbert.web.app/delete-account.html>
 - Support: <https://babysteps-cbert.web.app/>
 
-The detailed product and engineering plan is in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Play Console copy and declarations are in [store-assets](store-assets).
+The detailed product and engineering plan is in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). The end-to-end ads, subscription, grandfathering and Play setup procedure is in [docs/MONETIZATION_PUBLISHING.md](docs/MONETIZATION_PUBLISHING.md). Play Console copy and declarations are in [store-assets](store-assets).
+The optional read-only AI Assistant architecture, privacy boundary, App Check setup and narrow deployment procedure are in [docs/AI_ASSISTANT_SETUP.md](docs/AI_ASSISTANT_SETUP.md).
+Alexa development-skill architecture, deployment and testing are in [docs/ALEXA_SETUP.md](docs/ALEXA_SETUP.md).
+The paired-phone Galaxy Watch/Wear OS build and installation steps are in
+[wear-app/README.md](wear-app/README.md). The watch does not require a SIM; it
+queues Quick Care commands through the Wear OS Data Layer for the signed-in
+Android phone to process over Bluetooth or Wi-Fi.
 
 ## Current functionality
 
 - Email/password registration and login.
+- Google sign-in on Android.
 - Password-reset email.
 - First-run baby setup.
 - Multiple baby profiles and active selection.
 - Bottle and breast feed logs.
 - Wet, dirty and combined nappy logs.
 - Persistent sleep start/stop.
-- Live recent timeline.
+- Customisable Home quick actions.
+- Optional pumping, solids, growth, potty, temperature, medicine, tummy-time, bath, milestone, teething, observation, appointment and immunisation records. Appointments and immunisations support review-before-save field extraction from a selected photo or pasted message or email text.
+- Live recent activity list.
 - Edit and remove logs.
 - Daily and seven-day summaries.
+- Optional in-app voice entry with an explicit confirmation step before a record is saved.
+- Consent-gated, read-only AI Assistant for questions and on-demand summaries based only on the selected baby's logged records.
 - In-app privacy, support and deletion links.
-- Password-confirmed sole-caregiver account deletion.
+- Reauthenticated account deletion that preserves shared profiles for remaining caregivers and deletes last-caregiver profiles.
 - Firebase rules that restrict data to authorised accounts.
+- Optional Alexa development skill for feed, sleep and nappy logging.
 - Light and dark theme support.
+- Ad-supported Free and ad-free Premium account states.
+- Server-verified Google Play subscriptions with purchase restoration.
+- Permanent Founding Premium grants for configured pre-release accounts.
+- Consent-aware, non-personalised, G-rated adaptive banners plus at most one
+  interstitial per 24 hours after a completed log.
 
-BabySteps is a convenience log, not a medical device. It provides no diagnosis, medical guidance, monitoring guarantee or emergency service.
+PitterPatter is a convenience log, not a medical device. It provides no diagnosis, medical guidance, monitoring guarantee or emergency service.
 
 ## Prerequisites
 
@@ -60,23 +77,53 @@ npm test
 npm run test:emulators
 ```
 
-Start Metro:
+Generate a fresh native Android project whenever native dependencies or Expo
+plugins change, then build, install and launch it on the connected device:
+
+```powershell
+npm run prebuild:android
+npm run android
+```
+
+For later JavaScript-only changes, start Metro for the installed PitterPatter
+development client:
 
 ```powershell
 npm start
 ```
 
-Generate the native Android project:
-
-```powershell
-npm run prebuild:android
-```
-
-The app uses React Native Firebase and therefore requires a development build or native Android build; Expo Go is not sufficient.
+The app uses React Native Firebase, Google Mobile Ads, Google Play Billing and
+Expo Crypto native modules. Expo Go is not sufficient. If Metro reports that a
+native module cannot be found, do not open the QR code in Expo Go; rebuild with
+the first two commands above and open the installed `PitterPatter` app.
 
 ## Firebase configuration
 
 The checked-in `google-services.json` contains Firebase Android client configuration, not a server credential. Never add service-account JSON, upload keystores, passwords or access tokens to the repository.
+
+### Google sign-in configuration
+
+Google sign-in uses Firebase Authentication and the Android package
+`com.cbcreations.babysteps`. The app reads the web OAuth client (`client_type: 3`)
+from the checked-in `google-services.json`; do not copy the client ID into
+source code or an environment file.
+
+Before building:
+
+1. In Firebase Authentication, enable the Google provider and choose the
+   approved public project name and support email.
+2. In Firebase project settings, register the SHA-1 fingerprints for every
+   signing certificate used by the app: the local debug certificate, the local
+   upload/release certificate, and the Google Play app-signing certificate once
+   Play creates it.
+3. Download the refreshed `google-services.json` for
+   `com.cbcreations.babysteps` and replace the repository copy. Confirm it contains an
+   OAuth client with `client_type: 3`.
+4. Rebuild the native app. Google sign-in uses native code and does not work in
+   Expo Go.
+5. Test both a new Google account and an existing email/password account. If
+   Firebase reports that the email already uses another provider, log in with
+   that provider; do not create a duplicate caregiver account.
 
 Deploy backend configuration:
 
@@ -85,13 +132,26 @@ firebase deploy --only auth,firestore --project babysteps-cbert
 firebase deploy --only hosting --project babysteps-cbert
 ```
 
+Monetisation adds callable Functions, a Pub/Sub subscription-lifecycle handler
+and server-owned entitlement records. Complete
+`docs/MONETIZATION_PUBLISHING.md` before deploying or publishing those paths.
+
+The AI Assistant adds App Check-enforced callable Functions and a server-only
+OpenAI secret. Complete `docs/AI_ASSISTANT_SETUP.md` before deploying or
+enabling those paths. AI is disabled by default and its absence or failure does
+not block care logging or deterministic summaries.
+
 Run Firestore rules tests:
 
 ```powershell
 npm run test:emulators
 ```
 
-The local rules suite verifies own-profile access, cross-profile denial, authorised baby access, unsupported event rejection, forged caregiver rejection, immutable ownership and sole-caregiver deletion.
+The local rules suite verifies own-profile access, cross-profile denial, authorised baby access, unsupported event rejection, forged caregiver rejection, immutable ownership, last-caregiver deletion and safe departure from shared profiles.
+
+## ChatGPT and Claude connector
+
+The PitterPatter MCP connector supports authenticated care-record queries and completed-activity logging. See [mcp-server/README.md](mcp-server/README.md) for local setup, OAuth, deployment, plugin packaging and verification. Building the plugin does not deploy it or connect either client automatically.
 
 ## Release verification
 
@@ -121,7 +181,7 @@ For each Play build:
 
 ### Purpose
 
-The test establishes whether BabySteps is reliable and clear enough for normal household logging. It also gathers the evidence needed for a later production-access application where Google Play requires at least 12 opted-in testers for 14 continuous days.
+The test establishes whether PitterPatter is reliable and clear enough for normal household logging. It also gathers the evidence needed for a later production-access application where Google Play requires at least 12 opted-in testers for 14 continuous days.
 
 Do not treat the 14-day threshold as the only goal. The release must also demonstrate data integrity, understandable workflows, safe account isolation and a supportable update process.
 
@@ -201,14 +261,14 @@ Run on a fresh account:
 7. Log wet, dirty and both nappy types.
 8. Start sleep, background the app, force-close it, reopen and confirm the timer remains.
 9. Stop sleep and confirm a duration appears.
-10. Open Timeline and confirm events are ordered correctly.
+10. Open Activity and confirm events are ordered correctly.
 11. Edit the bottle amount or note and confirm it updates.
-12. Delete one event and confirm it leaves the visible timeline and summaries.
-13. Open Stats and compare totals with the timeline.
+12. Delete one event and confirm it leaves the visible activity list and summaries.
+13. Open Stats and compare totals with the activity list.
 14. Sign out and sign back in; confirm the same baby and events return.
 15. Trigger password reset and confirm an email is sent.
 16. Open support, privacy and deletion pages from Settings.
-17. Delete a disposable sole-caregiver account using the current password.
+17. Delete a disposable account after confirming with its password or Google sign-in.
 18. Confirm the deleted account can no longer sign in.
 
 ### Day 0 — internal installation
@@ -242,7 +302,7 @@ Coordinator:
 - Log bottle amount in the preferred unit.
 - Log a breast feed with duration.
 - Add and edit an optional note.
-- Confirm home counts, timeline text and Stats.
+- Confirm home counts, Activity text and Stats.
 - Report the number of taps and any values that were difficult to enter.
 
 ### Day 3 — nappy workflow
@@ -298,7 +358,7 @@ For testers willing to create disposable data:
 - Add a second baby profile.
 - Switch the active baby.
 - Log distinct events for each.
-- Confirm timeline and summaries do not mix babies.
+- Confirm the activity list and summaries do not mix babies.
 - Return to the first baby after restart.
 
 ### Day 9 — accessibility and compact layout
@@ -320,7 +380,7 @@ For testers willing to create disposable data:
 
 ### Day 11 — realistic normal use
 
-- Use BabySteps naturally for a day.
+- Use PitterPatter naturally for a day.
 - Do not create artificial volume unless desired.
 - Note the moment the app felt slow, confusing or unnecessary.
 - Record any event type or shortcut that would materially improve repeated use, but do not treat it as a release blocker automatically.
@@ -329,7 +389,7 @@ For testers willing to create disposable data:
 
 - Select a one-hour period.
 - Keep a separate simple written count.
-- Compare BabySteps timeline and summaries with that count.
+- Compare the PitterPatter activity list and summaries with that count.
 - Check ordering around midnight if the opportunity occurs.
 - Report discrepancies with exact times but omit unnecessary child details.
 
@@ -370,7 +430,7 @@ Run after every test update:
 5. Start and stop sleep.
 6. Add a feed.
 7. Edit one item.
-8. Check timeline and Stats.
+8. Check Activity and Stats.
 9. Restart and confirm persistence.
 10. Sign out.
 
@@ -379,7 +439,7 @@ Run after every test update:
 Ask:
 
 1. Which Android device and version did you use?
-2. On how many days did you use BabySteps?
+2. On how many days did you use PitterPatter?
 3. Which of feed, sleep and nappy logging did you use?
 4. Did any saved event disappear, duplicate or show the wrong value?
 5. Was it always clear which baby was active?
@@ -416,13 +476,16 @@ The test can proceed toward production access when:
 
 ## Known initial limitations
 
-- Optimised for a sole caregiver; caregiver invitation/transfer is not implemented.
-- Account deletion in-app is for sole-caregiver accounts.
+- Optimised for a sole caregiver; caregiver invitations are not implemented.
+- Account deletion automatically removes a departing caregiver from shared profiles while preserving them for remaining caregivers; a profile and its records are deleted when the departing account is its last caregiver.
 - No clinical interpretation or reminders.
-- No voice integration.
+- In-app speech recognition is optional and requires review before save; verify the provider path and declarations against the exact AAB. Alexa remains a separate optional development skill.
+- The AI Assistant is read-only, stateless, limited to logged records and not a source of medical or general parenting advice.
 - No guaranteed offline write queue.
 - No public production support commitment during the private test.
+- Live ads and subscriptions require the remaining account-owner console setup
+  in `docs/MONETIZATION_PUBLISHING.md`; development builds use test ads.
 
 ## Support
 
-Email `clb.bertram@googlemail.com` and include app version, Android version, device model, expected behaviour and actual behaviour. Avoid including a child’s real name or sensitive notes unless essential to diagnose the problem.
+Email `codebertcreations@gmail.com` and include expected behaviour and actual behaviour. The in-app feedback link adds the app build and Android version automatically. Avoid including a child’s real name or sensitive notes unless essential to diagnose the problem.
