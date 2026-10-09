@@ -35,6 +35,7 @@ export default function AppLayout() {
           />
           <Stack.Screen name="widget-settings" />
           <Stack.Screen name="sharing" />
+          <Stack.Screen name="voice-log" />
           <Stack.Screen name="join-baby" options={{ presentation: 'modal' }} />
         </Stack>
       </EventProvider>

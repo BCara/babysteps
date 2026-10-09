@@ -15,6 +15,11 @@ import {
   parseVoiceCommand,
   VoiceCommand,
 } from '../utils/voiceCommand';
+import { answerWakeWindowQuestion, parseVoiceQuestion } from '../utils/voiceQuestion';
+import { useVoiceTestLog } from '../hooks/useVoiceTestLog';
+import { useBabies } from '../providers/BabyProvider';
+import { useEvents } from '../providers/EventProvider';
+import VoiceTestPrompt from './VoiceTestPrompt';
 
 interface VoiceInputCardProps {
   onCommand: (command: VoiceCommand) => Promise<void>;
@@ -37,7 +42,35 @@ export default function VoiceInputCard({
   const [canOpenSettings, setCanOpenSettings] = useState(false);
   const autoStartAttempted = useRef(false);
   const ownsRecognitionSession = useRef(false);
-  const parsed = useMemo(() => parseVoiceCommand(transcript), [transcript]);
+  const { selectedBaby } = useBabies();
+  const { events } = useEvents();
+  // A question about the log is answered on the card; anything else is a command.
+  const interpret = useCallback(
+    (heard: string) => {
+      if (parseVoiceQuestion(heard) === 'wake-window' && selectedBaby) {
+        return {
+          command: null,
+          answer: answerWakeWindowQuestion({
+            babyName: selectedBaby.name,
+            dateOfBirth: selectedBaby.dateOfBirth,
+            events,
+            now: new Date(),
+          }),
+          description: '',
+        };
+      }
+      return { ...parseVoiceCommand(heard), answer: null };
+    },
+    [events, selectedBaby],
+  );
+  const parsed = useMemo(() => interpret(transcript), [interpret, transcript]);
+  const voiceTest = useVoiceTestLog();
+  const [testEntryId, setTestEntryId] = useState<string | null>(null);
+  const latestTranscript = useRef('');
+  const awaitingTestAnswer = Boolean(
+    testEntryId &&
+      voiceTest.entries.some(entry => entry.id === testEntryId && !entry.answer),
+  );
 
   useSpeechRecognitionEvent('start', () => {
     if (!ownsRecognitionSession.current) return;
@@ -49,31 +82,52 @@ export default function VoiceInputCard({
     if (!ownsRecognitionSession.current) return;
     ownsRecognitionSession.current = false;
     setListening(false);
+    const heard = latestTranscript.current;
+    if (heard) {
+      const result = interpret(heard);
+      setTestEntryId(
+        voiceTest.record({
+          source: 'quick care',
+          heard,
+          understood: result.answer ?? result.description,
+        }),
+      );
+    }
   });
   useSpeechRecognitionEvent('result', event => {
     if (!ownsRecognitionSession.current) return;
     const nextTranscript = event.results[0]?.transcript?.trim() || '';
-    if (nextTranscript) setTranscript(nextTranscript);
+    if (nextTranscript) {
+      latestTranscript.current = nextTranscript;
+      setTranscript(nextTranscript);
+    }
   });
   useSpeechRecognitionEvent('error', event => {
     if (!ownsRecognitionSession.current) return;
     ownsRecognitionSession.current = false;
     setListening(false);
     if (event.error === 'aborted') return;
-    if (event.error === 'not-allowed') {
-      const denial = describeMicrophoneDenial(
-        { granted: false, canAskAgain: false },
-        Platform.OS,
-      );
-      setCanOpenSettings(denial.canOpenSettings);
-      setError(denial.message);
-      return;
-    }
-    setCanOpenSettings(false);
-    setError(
-      event.error === 'no-speech' || event.error === 'speech-timeout'
+    const denial =
+      event.error === 'not-allowed'
+        ? describeMicrophoneDenial(
+            { granted: false, canAskAgain: false },
+            Platform.OS,
+          )
+        : null;
+    const message = denial
+      ? denial.message
+      : event.error === 'no-speech' || event.error === 'speech-timeout'
         ? 'I did not hear anything. Tap the microphone and try again.'
-        : 'Voice input is unavailable right now. Please try again.',
+        : 'Voice input is unavailable right now. Please try again.';
+    setCanOpenSettings(Boolean(denial?.canOpenSettings));
+    setError(message);
+    setTestEntryId(
+      voiceTest.record({
+        source: 'quick care',
+        heard: latestTranscript.current,
+        understood: message,
+        error: event.error,
+      }),
     );
   });
 
@@ -87,6 +141,8 @@ export default function VoiceInputCard({
   }, []);
 
   const startListening = useCallback(async () => {
+    latestTranscript.current = '';
+    setTestEntryId(null);
     setTranscript('');
     setError('');
     setCanOpenSettings(false);
@@ -121,6 +177,7 @@ export default function VoiceInputCard({
     ownsRecognitionSession.current = false;
     setListening(false);
     setTranscript('');
+    setTestEntryId(null);
     setCanOpenSettings(false);
     setError('');
   };
@@ -144,7 +201,9 @@ export default function VoiceInputCard({
     }
   };
 
-  const active = listening || Boolean(transcript) || Boolean(error);
+  // Stay open after Confirm until a voice tester has answered Yes or No.
+  const active =
+    listening || Boolean(transcript) || Boolean(error) || awaitingTestAnswer;
 
   if (!active) {
     return (
@@ -214,7 +273,9 @@ export default function VoiceInputCard({
             variant="bodySmall"
             style={{ color: theme.colors.onSurfaceVariant }}
           >
-            {listening ? 'Say one care event' : 'Check what I heard before saving'}
+            {listening
+              ? 'Say a care event or ask about wake windows'
+              : 'Check what I heard before saving'}
           </Text>
         </View>
         <Button compact onPress={reset} textColor={theme.colors.onSurfaceVariant}>
@@ -236,6 +297,18 @@ export default function VoiceInputCard({
             HEARD
           </Text>
           <Text variant="bodyLarge">“{transcript}”</Text>
+          {parsed.answer ? (
+            <View style={styles.interpretation}>
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={19}
+                color={theme.colors.primary}
+              />
+              <Text variant="bodyMedium" style={styles.interpretationCopy}>
+                {parsed.answer}
+              </Text>
+            </View>
+          ) : (
           <View style={styles.interpretation}>
             <MaterialCommunityIcons
               name={parsed.command ? 'check-circle-outline' : 'help-circle-outline'}
@@ -256,6 +329,7 @@ export default function VoiceInputCard({
               {parsed.description}
             </Text>
           </View>
+          )}
         </View>
       ) : null}
 
@@ -264,6 +338,8 @@ export default function VoiceInputCard({
           {error}
         </Text>
       ) : null}
+
+      {!listening ? <VoiceTestPrompt entryId={testEntryId} /> : null}
 
       <View style={styles.actions}>
         {canOpenSettings ? (

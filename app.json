@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.cbcreations.babysteps",
-      "versionCode": 2,
+      "versionCode": 3,
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": true,

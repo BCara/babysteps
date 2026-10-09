@@ -16,6 +16,8 @@ import {
   type VoiceEntryContext,
   type VoiceEntryValues,
 } from '../utils/voiceCommand';
+import { useVoiceTestLog } from '../hooks/useVoiceTestLog';
+import VoiceTestPrompt from './VoiceTestPrompt';
 
 interface Props {
   context: VoiceEntryContext;
@@ -42,6 +44,9 @@ export default function ContextualVoiceButton({
   const [isError, setIsError] = useState(false);
   const [canOpenSettings, setCanOpenSettings] = useState(false);
   const ownsRecognitionSession = useRef(false);
+  const voiceTest = useVoiceTestLog();
+  const [testEntryId, setTestEntryId] = useState<string | null>(null);
+  const latestTranscript = useRef('');
 
   useSpeechRecognitionEvent('start', () => {
     if (!ownsRecognitionSession.current) return;
@@ -59,6 +64,7 @@ export default function ContextualVoiceButton({
     if (!ownsRecognitionSession.current) return;
     const transcript = event.results[0]?.transcript?.trim() || '';
     if (!transcript) return;
+    latestTranscript.current = transcript;
     if (!event.isFinal) {
       setMessage(`Heard: “${transcript}”`);
       return;
@@ -67,6 +73,13 @@ export default function ContextualVoiceButton({
     const parsed = parseContextualVoiceEntry(context, transcript);
     setMessage(parsed.description);
     setIsError(!parsed.values);
+    setTestEntryId(
+      voiceTest.record({
+        source: `${context} form`,
+        heard: transcript,
+        understood: parsed.description,
+      }),
+    );
     if (parsed.values) onFill(parsed.values);
   });
   useSpeechRecognitionEvent('error', event => {
@@ -75,20 +88,28 @@ export default function ContextualVoiceButton({
     setListening(false);
     if (event.error === 'aborted') return;
     setIsError(true);
-    if (event.error === 'not-allowed') {
-      const denial = describeMicrophoneDenial(
-        { granted: false, canAskAgain: false },
-        Platform.OS,
-      );
-      setCanOpenSettings(denial.canOpenSettings);
-      setMessage(denial.message);
-      return;
-    }
-    setCanOpenSettings(false);
-    setMessage(
-      event.error === 'no-speech' || event.error === 'speech-timeout'
-        ? 'I did not hear anything. Tap the microphone and try again.'
-        : 'Voice input is unavailable right now. Please try again.',
+    const denial =
+      event.error === 'not-allowed'
+        ? describeMicrophoneDenial(
+            { granted: false, canAskAgain: false },
+            Platform.OS,
+          )
+        : null;
+    const nextMessage =
+      denial
+        ? denial.message
+        : event.error === 'no-speech' || event.error === 'speech-timeout'
+          ? 'I did not hear anything. Tap the microphone and try again.'
+          : 'Voice input is unavailable right now. Please try again.';
+    setCanOpenSettings(Boolean(denial?.canOpenSettings));
+    setMessage(nextMessage);
+    setTestEntryId(
+      voiceTest.record({
+        source: `${context} form`,
+        heard: latestTranscript.current,
+        understood: nextMessage,
+        error: event.error,
+      }),
     );
   });
 
@@ -103,6 +124,8 @@ export default function ContextualVoiceButton({
   };
 
   const startListening = async () => {
+    latestTranscript.current = '';
+    setTestEntryId(null);
     setMessage('');
     setIsError(false);
     setCanOpenSettings(false);
@@ -176,6 +199,9 @@ export default function ContextualVoiceButton({
             >
               {MICROPHONE_SETTINGS_LABEL}
             </Button>
+          ) : null}
+          {!listening ? (
+            <VoiceTestPrompt entryId={testEntryId} color={feedbackColor} />
           ) : null}
         </View>
       ) : null;

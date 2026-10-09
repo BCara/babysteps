@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -22,6 +22,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
+import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 import { useAuth } from '../../../src/providers/AuthProvider';
 import { useBabies } from '../../../src/providers/BabyProvider';
 import {
@@ -33,12 +35,19 @@ import PremiumCard from '../../../src/components/PremiumCard';
 import { useMonetization } from '../../../src/providers/MonetizationProvider';
 import { useAiAssistant } from '../../../src/providers/AiAssistantProvider';
 import { useMissedCareSetting } from '../../../src/hooks/useMissedCare';
+import { useVoiceTestLog } from '../../../src/hooks/useVoiceTestLog';
+import {
+  AppVersionInfo,
+  formatVersionDetails,
+  formatVersionLine,
+} from '../../../src/utils/appVersion';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const { user, signOut, deleteAccount, errorMessage } = useAuth();
   const { babies, selectedBaby, selectBaby, profile } = useBabies();
   const missedCare = useMissedCareSetting();
+  const voiceTest = useVoiceTestLog();
   const {
     privacyOptionsRequired,
     showAdPrivacyOptions,
@@ -57,9 +66,45 @@ export default function SettingsScreen() {
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [versionInfo, setVersionInfo] = useState<AppVersionInfo>({
+    nativeVersion: Application.nativeApplicationVersion,
+    nativeBuild: Application.nativeBuildVersion,
+    bundleVersion: Constants.expoConfig?.version ?? null,
+    lastUpdated: null,
+  });
   const usesPassword = Boolean(
     user?.providerData.some(provider => provider.providerId === 'password'),
   );
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    let active = true;
+    Application.getLastUpdateTimeAsync()
+      .then(lastUpdated => {
+        if (active) setVersionInfo(info => ({ ...info, lastUpdated }));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const showVersionDetails = async () => {
+    const extraLines = [`${Platform.OS} ${Platform.Version}`];
+    if (Platform.OS !== 'web') {
+      const microphone = await ExpoSpeechRecognitionModule.getPermissionsAsync()
+        .then(permission => (permission.granted ? 'allowed' : 'not allowed'))
+        .catch(() => 'unknown');
+      extraLines.push(`Microphone: ${microphone}`);
+    }
+    Alert.alert('About this build', formatVersionDetails(versionInfo, extraLines), [
+      {
+        text: voiceTest.enabled ? 'Stop voice testing' : 'Voice testing',
+        onPress: () => voiceTest.setEnabled(!voiceTest.enabled),
+      },
+      { text: 'OK', style: 'cancel' },
+    ]);
+  };
 
   const openUrl = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
@@ -67,8 +112,6 @@ export default function SettingsScreen() {
   };
 
   const openFeedbackEmail = () => {
-    const version = Constants.expoConfig?.version || '0.1.0';
-    const build = Constants.expoConfig?.android?.versionCode || 1;
     const subject = encodeURIComponent('PitterPatter feedback');
     const body = encodeURIComponent(
       [
@@ -78,7 +121,7 @@ export default function SettingsScreen() {
         'Please avoid including a child’s real name or sensitive care notes.',
         '',
         '--- App details ---',
-        `PitterPatter ${version} (${build})`,
+        formatVersionLine(versionInfo),
         `Android ${Platform.Version}`,
       ].join('\n'),
     );
@@ -289,6 +332,15 @@ export default function SettingsScreen() {
             left={props => <List.Icon {...props} icon="account-remove-outline" />}
             onPress={() => openUrl(ACCOUNT_DELETION_URL)}
           />
+          {voiceTest.enabled ? (
+            <List.Item
+              title="Voice test log"
+              description={`${voiceTest.entries.length} attempts logged on this phone`}
+              left={props => <List.Icon {...props} icon="microphone-message" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => router.push('/(app)/voice-log')}
+            />
+          ) : null}
           {privacyOptionsRequired ? (
             <List.Item
               title="Ad privacy choices"
@@ -317,6 +369,15 @@ export default function SettingsScreen() {
             Delete account and data
           </Button>
         </View>
+
+        <Text
+          variant="labelSmall"
+          style={styles.versionLine}
+          onLongPress={showVersionDetails}
+          accessibilityHint="Hold to show build details"
+        >
+          {formatVersionLine(versionInfo)}
+        </Text>
       </ScrollView>
 
       <Portal>
@@ -407,6 +468,12 @@ const styles = StyleSheet.create({
   accountActions: {
     padding: 24,
     gap: 10,
+  },
+  versionLine: {
+    textAlign: 'center',
+    opacity: 0.4,
+    paddingTop: 8,
+    paddingBottom: 32,
   },
   deleteCopy: {
     marginBottom: 18,
