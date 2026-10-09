@@ -9,6 +9,8 @@ import {
 import { NursingScroll, NursingTextField } from '../nursing/NursingFields';
 import NursingStartTimeFields from '../nursing/NursingStartTimeFields';
 import SleepLocationPicker from './SleepLocationPicker';
+import SleepSettlingFields from './SleepSettlingFields';
+import type { SettlingDifficulty } from '../../utils/sleepSettling';
 
 interface Props {
   startTime: Date;
@@ -20,6 +22,10 @@ interface Props {
   sleepType: SleepType;
   onSleepTypeChange: (next: SleepType) => void;
   customSleepLocations: CustomSleepLocation[];
+  settlingMinutes: string;
+  onSettlingMinutesChange: (value: string) => void;
+  settlingDifficulty?: SettlingDifficulty;
+  onSettlingDifficultyChange: (next: SettlingDifficulty | undefined) => void;
   notes: string;
   onNotesChange: (next: string) => void;
   onVoiceFill: (values: VoiceEntryValues) => void;
@@ -45,7 +51,7 @@ export default function SleepEditScreen(props: Props) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: chrome.flat.bgPage }} edges={['top', 'bottom']}>
       <NursingPage chrome={chrome} accessibilityLabel="Edit sleep">
-        <NursingHeader chrome={chrome} title="Edit sleep" icon="sleep" eyebrow="SLEEP"
+        <NursingHeader chrome={chrome} title="Edit sleep" icon="sleep"
           onBack={props.onClose} backLabel="Close" />
         <NursingScroll>
           <ContextualVoiceButton context="sleep" onFill={props.onVoiceFill} disabled={props.saving}
@@ -60,6 +66,10 @@ export default function SleepEditScreen(props: Props) {
             value={props.sleepType} onChange={next => props.onSleepTypeChange(next || [])} disabled={props.saving} />
           <NursingTextField chrome={chrome} label="Duration in minutes" value={props.duration}
             onChangeText={props.onDurationChange} disabled={props.saving} />
+          <SleepSettlingFields chrome={chrome} minutes={props.settlingMinutes}
+            onMinutesChange={props.onSettlingMinutesChange}
+            difficulty={props.settlingDifficulty}
+            onDifficultyChange={props.onSettlingDifficultyChange} disabled={props.saving} />
           <NursingTextField chrome={chrome} label="Notes" value={props.notes}
             onChangeText={props.onNotesChange} keyboardType="default" multiline disabled={props.saving} />
           <NursingError chrome={chrome} message={props.error} />

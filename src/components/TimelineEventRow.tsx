@@ -18,6 +18,8 @@ interface Props {
   onDelete: (eventId: string) => Promise<void>;
   onDeleted?: () => void;
   onError?: (message: string) => void;
+  firstInDay?: boolean;
+  lastInDay?: boolean;
 }
 
 export default function TimelineEventRow({
@@ -32,6 +34,8 @@ export default function TimelineEventRow({
   onDelete,
   onDeleted,
   onError,
+  firstInDay = false,
+  lastInDay = false,
 }: Props) {
   const theme = useTheme();
   const swipeable = useRef<Swipeable>(null);
@@ -100,6 +104,9 @@ export default function TimelineEventRow({
       )}
     >
       <EventCard
+        variant="timeline"
+        firstInDay={firstInDay}
+        lastInDay={lastInDay}
         event={event}
         review={review}
         onReviewMerge={onReviewMerge}
@@ -115,9 +122,6 @@ export default function TimelineEventRow({
 const styles = StyleSheet.create({
   deleteAction: {
     width: 104,
-    marginRight: 16,
-    marginVertical: 6,
-    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,

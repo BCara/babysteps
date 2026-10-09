@@ -1,4 +1,5 @@
 import { selectedSleepLocations, toggleSleepLocation } from '../../utils/sleepLocation';
+import { useState } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { Icon } from 'react-native-paper';
 import type { NursingChrome } from '../nursing/NursingChrome';
@@ -7,14 +8,17 @@ import type {
   SleepLocationDefinition,
 } from '../../utils/sleepLocation';
 
+/** Four places to a row: enough to read an icon and a word, few enough to aim at. */
+const COLUMNS = 4;
+const GAP = 8;
+
 /**
  * Where the baby is sleeping.
  *
- * Nursing has two sides and gives each a tall card. Sleep can have eight
- * places once a caregiver adds their own, so this wraps a row of shorter cards
- * instead — same borders, same press ring, same active fill, just sized to a
- * list that grows. Nothing here is required: a sleep with no place chosen is a
- * perfectly good sleep, so the selection can be cleared by tapping again.
+ * A grid of icon tiles, four across, with Add as a tile of its own at the end
+ * so it never stretches into a row on its own. Nothing here is required: a
+ * sleep with no place chosen is a perfectly good sleep, so a choice can be
+ * cleared by tapping it again.
  */
 export default function SleepLocationPicker({
   chrome,
@@ -32,14 +36,28 @@ export default function SleepLocationPicker({
   onAdd?: () => void;
   disabled?: boolean;
 }) {
+  // Measured rather than a percentage, so four tiles and three gaps always add
+  // up to exactly the row, however wide the screen.
+  const [tileWidth, setTileWidth] = useState<number>();
+  const tile = tileWidth ? { width: tileWidth } : styles.cellFallback;
+
   return (
-    <View style={styles.grid}>
+    <View
+      style={styles.grid}
+      onLayout={event =>
+        setTileWidth(
+          Math.floor(
+            (event.nativeEvent.layout.width - GAP * (COLUMNS - 1)) / COLUMNS,
+          ),
+        )
+      }
+    >
       {definitions.map(definition => {
         const active = selectedSleepLocations(value).includes(definition.id);
         return (
           <Pressable
             key={definition.id}
-            style={styles.cell}
+            style={tile}
             disabled={disabled}
             onPress={chrome.tap(() =>
               onChange(toggleSleepLocation(value, definition.id)),
@@ -58,8 +76,11 @@ export default function SleepLocationPicker({
               style={[
                 styles.card,
                 {
+                  // Chosen places take the same filled pill every other
+                  // selected control in the app wears. A tinted dark card next
+                  // to an untinted one is not a difference you can read at 3am.
                   backgroundColor: active
-                    ? chrome.tokens.bgCardActive
+                    ? chrome.tokens.bgPillActive
                     : chrome.tokens.bgCard,
                   borderColor: chrome.ring(
                     definition.id,
@@ -72,16 +93,19 @@ export default function SleepLocationPicker({
             >
               <Icon
                 source={definition.icon}
-                size={20}
-                color={active ? chrome.flat.accent : chrome.flat.textSecondary}
+                size={24}
+                color={
+                  active ? chrome.flat.textOnFill : chrome.flat.textSecondary
+                }
               />
               <Animated.Text
                 numberOfLines={1}
                 style={[
                   styles.label,
+                  active && styles.labelActive,
                   {
                     color: active
-                      ? chrome.tokens.accent
+                      ? chrome.tokens.textOnFill
                       : chrome.tokens.textPrimary,
                   },
                 ]}
@@ -95,7 +119,7 @@ export default function SleepLocationPicker({
 
       {onAdd ? (
         <Pressable
-          style={styles.cell}
+          style={tile}
           disabled={disabled}
           onPress={chrome.tap(onAdd)}
           {...chrome.press('add-place')}
@@ -115,7 +139,7 @@ export default function SleepLocationPicker({
               },
             ]}
           >
-            <Icon source="plus" size={20} color={chrome.flat.textTertiary} />
+            <Icon source="plus" size={24} color={chrome.flat.textTertiary} />
             <Animated.Text
               numberOfLines={1}
               style={[styles.label, { color: chrome.tokens.textTertiary }]}
@@ -130,20 +154,20 @@ export default function SleepLocationPicker({
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  // Three to a row at the usual width, and the cards keep their height as the
-  // list wraps onto a second and third row.
-  cell: { flexGrow: 1, flexBasis: 96 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
+  // Before the grid has been measured: close enough to four across.
+  cellFallback: { flexBasis: 70, flexGrow: 1 },
   card: {
-    minHeight: 60,
-    borderRadius: 12,
+    minHeight: 64,
+    borderRadius: 14,
     borderWidth: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
   },
   addCard: { borderStyle: 'dashed' },
   label: { fontSize: 13, fontWeight: '500' },
+  labelActive: { fontWeight: '700' },
 });

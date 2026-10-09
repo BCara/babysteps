@@ -5,6 +5,7 @@ import {
   sleepLocationLabel,
   type CustomSleepLocation,
 } from './sleepLocation';
+import { describeSettling } from './sleepSettling';
 
 export interface CareDayStat {
   date: Date;
@@ -150,6 +151,8 @@ export const buildCareStatsCsv = ({
     if (metadata.sleepType) {
       details.push(sleepLocationLabel(metadata.sleepType, customSleepLocations));
     }
+    const settling = describeSettling(metadata);
+    if (settling) details.push(settling);
     if (metadata.pumpingSide) details.push(metadata.pumpingSide);
     if (metadata.storageLocation) details.push(metadata.storageLocation);
     if (metadata.food) details.push(metadata.food);

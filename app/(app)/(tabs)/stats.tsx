@@ -8,7 +8,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Surface, Text, useTheme } from 'react-native-paper';
+import {
+  FAB,
+  Snackbar,
+  Surface,
+  Text,
+  useTheme,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../../../src/providers/EventProvider';
 import { useBabies } from '../../../src/providers/BabyProvider';
@@ -23,13 +29,31 @@ import {
 } from '../../../src/utils/statsExport';
 import AdBanner from '../../../src/components/AdBanner';
 import type { BabyEvent } from '../../../src/services/firebase/events';
-import { careActionByType } from '../../../src/constants/careActions';
+import {
+  careActionByType,
+} from '../../../src/constants/careActions';
 import {
   formatNursingDuration,
   summarizeNursingSides,
 } from '../../../src/utils/breastFeed';
 import SummaryDayNavigator from '../../../src/components/SummaryDayNavigator';
 import DayTimeline from '../../../src/components/DayTimeline';
+import EventEditModal from '../../../src/components/EventEditModal';
+import CareLogModal, {
+  AdditionalCareType,
+  CareLogInput,
+} from '../../../src/components/CareLogModal';
+import AddEntryPicker from '../../../src/components/AddEntryPicker';
+import AddEntrySheet from '../../../src/components/AddEntrySheet';
+import type { HomeActionKey } from '../../../src/constants/careActions';
+import {
+  shiftedEventTimes,
+  usesEventEditModal,
+} from '../../../src/utils/eventEditing';
+import {
+  formatClock,
+  timelineEventLabel,
+} from '../../../src/utils/dayTimeline';
 
 type MetricKey = 'feeds' | 'diapers' | 'sleepMinutes';
 type ViewMode = 'today' | 'week' | 'insights';
@@ -241,7 +265,69 @@ const averageGapMinutes = (events: BabyEvent[]) => {
 export default function StatsScreen() {
   const theme = useTheme();
   const { selectedBaby, customSleepLocations } = useBabies();
-  const { events } = useEvents();
+  const { events, editEvent, deleteEvent } = useEvents();
+  const [editingEvent, setEditingEvent] = useState<BabyEvent | null>(null);
+  const [editingCareEvent, setEditingCareEvent] = useState<BabyEvent | null>(null);
+  // Adding happens in two steps: choose what, then fill it in. `addAt` holds
+  // the tapped hour through both (undefined for the + button, which is "now").
+  const [pickingEntry, setPickingEntry] = useState(false);
+  const [addAt, setAddAt] = useState<Date | undefined>();
+  const [addEntry, setAddEntry] = useState<HomeActionKey | null>(null);
+
+  // A block held on the timeline stops the page scrolling under the finger.
+  const [draggingBlock, setDraggingBlock] = useState(false);
+  const [moved, setMoved] = useState<{
+    event: BabyEvent;
+    message: string;
+  } | null>(null);
+
+  const moveEvent = async (
+    event: BabyEvent,
+    updates: Partial<Pick<BabyEvent, 'startTime' | 'endTime' | 'durationMinutes'>>,
+  ) => {
+    if (!event.id) return;
+    try {
+      await editEvent(event.id, updates);
+      const label = timelineEventLabel(event);
+      setMoved({
+        event,
+        message: updates.startTime
+          ? `${label} moved to ${formatClock(updates.startTime)}`
+          : `${label} now ends at ${formatClock(updates.endTime || event.startTime)}`,
+      });
+    } catch {
+      Alert.alert('Could not move entry', 'Please try again.');
+    }
+  };
+
+  const undoMove = async () => {
+    const original = moved?.event;
+    setMoved(null);
+    if (!original?.id) return;
+    await editEvent(original.id, {
+      startTime: original.startTime,
+      endTime: original.endTime,
+      ...(original.durationMinutes !== undefined
+        ? { durationMinutes: original.durationMinutes }
+        : {}),
+    });
+  };
+
+  const openForEditing = (event: BabyEvent) => {
+    if (usesEventEditModal(event.type)) setEditingEvent(event);
+    else setEditingCareEvent(event);
+  };
+
+  const startAdding = (at?: Date) => {
+    setAddAt(at);
+    setPickingEntry(true);
+  };
+
+  const closeAdding = () => {
+    setPickingEntry(false);
+    setAddEntry(null);
+    setAddAt(undefined);
+  };
   const [viewMode, setViewMode] = useState<ViewMode>('today');
   const [selectedDay, setSelectedDay] = useState(() => {
     const today = new Date();
@@ -622,6 +708,80 @@ export default function StatsScreen() {
     if (page.metric) setSelectedMetric(page.metric);
   };
 
+  // Totals for whatever the day or week holds. In trends they pick the graph's
+  // metric; on their own they are the day's tally, which belongs with the
+  // insights rather than on top of the to-scale timeline.
+  const metricRow = (
+    <View style={styles.metricRow}>
+      {visibleMetrics.map(metric => {
+        const selected =
+          viewMode === 'week' && metric.key === selectedMetric;
+        const total =
+          metric.key === 'sleepMinutes'
+            ? displayedTotals.sleepMinutes / 60
+            : displayedTotals[metric.key];
+        return (
+          <Pressable
+            key={metric.key}
+            onPress={() => setSelectedMetric(metric.key)}
+            disabled={viewMode !== 'week'}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={
+              viewMode === 'week'
+                ? `Show ${metric.label.toLowerCase()} graph`
+                : `${metric.label} on the selected day: ${formatValue(total, metric.key, true)}`
+            }
+            style={({ pressed }) => [
+              styles.metricPressable,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Surface
+              style={[
+                styles.metricCard,
+                {
+                  backgroundColor: selected
+                    ? `${metric.color}18`
+                    : theme.colors.surface,
+                  borderColor: selected
+                    ? metric.color
+                    : theme.colors.outlineVariant,
+                },
+              ]}
+              elevation={selected ? 1 : 0}
+            >
+              <View
+                style={[
+                  styles.metricIcon,
+                  { backgroundColor: `${metric.color}24` },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={metric.icon}
+                  size={20}
+                  color={metric.color}
+                />
+              </View>
+              <Text
+                variant="titleLarge"
+                style={[styles.metricValue, { color: metric.color }]}
+              >
+                {formatValue(total, metric.key, true)}
+              </Text>
+              <Text
+                variant="labelMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {metric.label}
+              </Text>
+            </Surface>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
   const shareExport = async (format: 'json' | 'csv') => {
     if (exporting) return;
 
@@ -678,7 +838,10 @@ export default function StatsScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       edges={['top']}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        scrollEnabled={!draggingBlock}
+      >
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text variant="headlineMedium" style={styles.title}>
@@ -841,74 +1004,7 @@ export default function StatsScreen() {
         {viewMode !== 'insights' ? (
           <>
             {summaryPage === 'overview' ? (
-              <View style={styles.metricRow}>
-                {visibleMetrics.map(metric => {
-                  const selected =
-                    viewMode === 'week' && metric.key === selectedMetric;
-                  const total =
-                    metric.key === 'sleepMinutes'
-                      ? displayedTotals.sleepMinutes / 60
-                      : displayedTotals[metric.key];
-                  return (
-                    <Pressable
-                      key={metric.key}
-                      onPress={() => setSelectedMetric(metric.key)}
-                      disabled={viewMode === 'today'}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={
-                        viewMode === 'today'
-                          ? `${metric.label} on the selected day: ${formatValue(total, metric.key, true)}`
-                          : `Show ${metric.label.toLowerCase()} graph`
-                      }
-                      style={({ pressed }) => [
-                        styles.metricPressable,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <Surface
-                        style={[
-                          styles.metricCard,
-                          {
-                            backgroundColor: selected
-                              ? `${metric.color}18`
-                              : theme.colors.surface,
-                            borderColor: selected
-                              ? metric.color
-                              : theme.colors.outlineVariant,
-                          },
-                        ]}
-                        elevation={selected ? 1 : 0}
-                      >
-                        <View
-                          style={[
-                            styles.metricIcon,
-                            { backgroundColor: `${metric.color}24` },
-                          ]}
-                        >
-                          <MaterialCommunityIcons
-                            name={metric.icon}
-                            size={20}
-                            color={metric.color}
-                          />
-                        </View>
-                        <Text
-                          variant="titleLarge"
-                          style={[styles.metricValue, { color: metric.color }]}
-                        >
-                          {formatValue(total, metric.key, true)}
-                        </Text>
-                        <Text
-                          variant="labelMedium"
-                          style={{ color: theme.colors.onSurfaceVariant }}
-                        >
-                          {metric.label}
-                        </Text>
-                      </Surface>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              viewMode === 'week' ? metricRow : null
             ) : summaryPage === 'diaper' ? (
               <Surface
                 style={[
@@ -1061,6 +1157,7 @@ export default function StatsScreen() {
                   {summaryPage === 'overview'
                     ? 'Midnight to midnight, drawn to scale'
                     : `Logged ${summaryPage === 'diaper' ? 'nappies' : `${summaryPage}s`} across the day, drawn to scale`}
+                  {' · hold an entry to move it'}
                 </Text>
               </View>
               <View
@@ -1090,6 +1187,10 @@ export default function StatsScreen() {
                 events={visibleDayEvents}
                 day={selectedDay}
                 eventColor={eventColor}
+                onSelectEvent={openForEditing}
+                onAddAt={startAdding}
+                onMoveEvent={moveEvent}
+                onDragActiveChange={setDraggingBlock}
                 emptyLabel={
                   summaryPage === 'overview'
                     ? 'Nothing logged on this day yet.'
@@ -1395,6 +1496,7 @@ export default function StatsScreen() {
 
         {viewMode === 'insights' ? (
           <>
+            {summaryPage === 'overview' ? metricRow : null}
             <View style={styles.suggestionsHeader}>
               <View>
                 <Text variant="titleMedium" style={styles.sectionHeading}>
@@ -1469,12 +1571,72 @@ export default function StatsScreen() {
           </>
         ) : null}
       </ScrollView>
+
+      <FAB
+        icon="plus"
+        style={styles.addFab}
+        onPress={() => startAdding()}
+        accessibilityLabel="Add an activity"
+        accessibilityHint="Chooses what to write down, starting now"
+      />
+      <AddEntryPicker
+        visible={pickingEntry}
+        title={
+          addAt
+            ? `Add at ${addAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : 'Add an activity'
+        }
+        onPick={key => {
+          setPickingEntry(false);
+          setAddEntry(key);
+        }}
+        onDismiss={closeAdding}
+      />
+      <AddEntrySheet entry={addEntry} startTime={addAt} onClose={closeAdding} />
+      <EventEditModal
+        visible={Boolean(editingEvent)}
+        event={editingEvent}
+        onClose={() => setEditingEvent(null)}
+        onSave={editEvent}
+        onDelete={deleteEvent}
+      />
+      <CareLogModal
+        visible={Boolean(editingCareEvent)}
+        type={(editingCareEvent?.type as AdditionalCareType) || null}
+        event={editingCareEvent}
+        onClose={() => setEditingCareEvent(null)}
+        onSave={async (input: CareLogInput) => {
+          if (!editingCareEvent?.id) return;
+          await editEvent(editingCareEvent.id, {
+            ...(input.startTime
+              ? shiftedEventTimes(editingCareEvent, input.startTime)
+              : {}),
+            durationMinutes: input.durationMinutes,
+            notes: input.notes?.trim() || '',
+            metadata: input.metadata,
+          });
+          setEditingCareEvent(null);
+        }}
+        onDelete={deleteEvent}
+      />
+      <Snackbar
+        visible={Boolean(moved)}
+        onDismiss={() => setMoved(null)}
+        duration={5000}
+        action={{ label: 'Undo', onPress: undoMove }}
+        wrapperStyle={styles.movedSnackbar}
+      >
+        {moved?.message}
+      </Snackbar>
       <AdBanner />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Clear of the ad banner and the tab bar below it.
+  addFab: { position: 'absolute', right: 16, bottom: 78 },
+  movedSnackbar: { bottom: 66 },
   container: {
     flex: 1,
   },

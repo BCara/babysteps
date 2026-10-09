@@ -98,11 +98,14 @@ describe('user profiles', () => {
   it('removes only the departing caregiver from a shared baby profile', async () => {
     const babyUpdate = vi.fn();
     const babyDelete = vi.fn();
+    const caregiverDelete = vi.fn();
+    const caregiverDoc = vi.fn(() => ({ delete: caregiverDelete }));
     firestoreMocks.queryGet.mockResolvedValue({
       docs: [
         {
           data: () => ({ authorizedCaregivers: ['owner', 'other'] }),
           ref: {
+            collection: vi.fn(() => ({ doc: caregiverDoc })),
             update: babyUpdate,
             delete: babyDelete,
           },
@@ -116,6 +119,8 @@ describe('user profiles', () => {
       authorizedCaregivers: 'array-remove:owner',
       updatedAt: 'server-timestamp',
     });
+    expect(caregiverDoc).toHaveBeenCalledWith('owner');
+    expect(caregiverDelete).toHaveBeenCalledOnce();
     expect(babyDelete).not.toHaveBeenCalled();
     expect(firestoreMocks.batchDelete).not.toHaveBeenCalled();
     expect(firestoreMocks.documentDelete).toHaveBeenCalledOnce();
@@ -125,6 +130,7 @@ describe('user profiles', () => {
     const firstEvent = { id: 'event-1' };
     const secondEvent = { id: 'event-2' };
     const babyDelete = vi.fn();
+    const caregiverDelete = vi.fn();
     const eventsGet = vi.fn().mockResolvedValue({
       docs: [{ ref: firstEvent }, { ref: secondEvent }],
     });
@@ -133,7 +139,10 @@ describe('user profiles', () => {
         {
           data: () => ({ authorizedCaregivers: ['owner'] }),
           ref: {
-            collection: vi.fn(() => ({ get: eventsGet })),
+            collection: vi.fn(() => ({
+              get: eventsGet,
+              doc: vi.fn(() => ({ delete: caregiverDelete })),
+            })),
             delete: babyDelete,
           },
         },
@@ -145,6 +154,7 @@ describe('user profiles', () => {
     expect(firestoreMocks.batchDelete).toHaveBeenNthCalledWith(1, firstEvent);
     expect(firestoreMocks.batchDelete).toHaveBeenNthCalledWith(2, secondEvent);
     expect(firestoreMocks.batchCommit).toHaveBeenCalledOnce();
+    expect(caregiverDelete).toHaveBeenCalledOnce();
     expect(babyDelete).toHaveBeenCalledOnce();
     expect(firestoreMocks.documentDelete).toHaveBeenCalledOnce();
   });

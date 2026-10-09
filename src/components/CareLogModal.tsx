@@ -26,6 +26,8 @@ interface Props {
   onClose: () => void;
   onSave: (input: CareLogInput) => Promise<void>;
   onDelete?: (eventId: string) => Promise<void>;
+  /** Where a new entry's time starts, such as the hour tapped on a timeline. */
+  initialStartTime?: Date;
 }
 
 const numberOrUndefined = (value: string) => {
@@ -34,7 +36,7 @@ const numberOrUndefined = (value: string) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 };
 
-export default function CareLogModal({ visible, type, event, embedded = false, onClose, onSave, onDelete }: Props) {
+export default function CareLogModal({ visible, type, event, embedded = false, onClose, onSave, onDelete, initialStartTime }: Props) {
   const theme = useTheme();
   const [values, setValues] = useState<Record<string, string>>({});
   const [startTime, setStartTime] = useState(new Date());
@@ -50,7 +52,7 @@ export default function CareLogModal({ visible, type, event, embedded = false, o
   useEffect(() => {
     if (!visible || !type) return;
     const metadata = event?.metadata || {};
-    setStartTime(event?.startTime || new Date());
+    setStartTime(event?.startTime || initialStartTime || new Date());
     setValues({
       notes: event?.notes || '', duration: event?.durationMinutes?.toString() || '',
       amount: metadata.amount?.toString() || '', unit: metadata.unit || 'ml', pumpingSide: metadata.pumpingSide || 'both', storageLocation: metadata.storageLocation || 'usedNow',
@@ -69,7 +71,7 @@ export default function CareLogModal({ visible, type, event, embedded = false, o
     setShowAppointmentDetails(false);
     setHealthRecordPage('details');
     setError('');
-  }, [event, type, visible]);
+  }, [event, type, visible, initialStartTime]);
 
   if (!visible || !type) return null;
   const definition = careActionByType[type];
@@ -387,7 +389,6 @@ export default function CareLogModal({ visible, type, event, embedded = false, o
       icon={definition.icon}
       color={definition.color}
       onClose={onClose}
-      eyebrow={event ? 'EDIT ACTIVITY' : 'QUICK CARE'}
       backLabel="Back"
       scrollable={false}
     >

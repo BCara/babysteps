@@ -37,6 +37,10 @@ interface ActiveFeedTimerProps {
   onDiscard: () => void;
   onCancel: () => void;
   onSwitchToManual: () => void;
+  /** Corrects one side's time mid-feed; the other side keeps counting. */
+  onSetSideSeconds?: (side: 'left' | 'right', seconds: number) => void;
+  /** Writes down a feed from earlier without touching the one running. */
+  onAddEarlier?: () => void;
   onChangeBreastSide: (breastSide: 'left' | 'right') => void;
   onChangeStartTime?: (startTime: Date) => void;
   stopping?: boolean;
@@ -68,6 +72,8 @@ export default function ActiveFeedTimer({
   onDiscard,
   onCancel,
   onSwitchToManual,
+  onSetSideSeconds,
+  onAddEarlier,
   onChangeBreastSide,
   onChangeStartTime,
   stopping = false,
@@ -160,6 +166,8 @@ export default function ActiveFeedTimer({
         onSwitchSide={onChangeBreastSide}
         onFinish={onStop}
         onEditTimes={onSwitchToManual}
+        onSetSideSeconds={onSetSideSeconds}
+        onAddEarlier={onAddEarlier}
         onDiscard={onCancel}
         onChangeStartTime={onChangeStartTime}
       />
@@ -484,6 +492,19 @@ export default function ActiveFeedTimer({
               }
             >
               Edit
+            </Button>
+          ) : null}
+          {onAddEarlier ? (
+            <Button
+              mode="outlined"
+              icon="clock-plus-outline"
+              onPress={onAddEarlier}
+              accessibilityLabel="Add a feed from earlier"
+              disabled={
+                stopping || cancelling || switching || savingSideChange
+              }
+            >
+              Add earlier
             </Button>
           ) : null}
           <Button

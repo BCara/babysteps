@@ -32,11 +32,13 @@ import {
 import PremiumCard from '../../../src/components/PremiumCard';
 import { useMonetization } from '../../../src/providers/MonetizationProvider';
 import { useAiAssistant } from '../../../src/providers/AiAssistantProvider';
+import { useMissedCareSetting } from '../../../src/hooks/useMissedCare';
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const { user, signOut, deleteAccount, errorMessage } = useAuth();
   const { babies, selectedBaby, selectBaby, profile } = useBabies();
+  const missedCare = useMissedCareSetting();
   const {
     privacyOptionsRequired,
     showAdPrivacyOptions,
@@ -170,7 +172,37 @@ export default function SettingsScreen() {
             left={props => <List.Icon {...props} icon="plus-circle-outline" />}
             onPress={() => router.push('/(app)/onboarding')}
           />
+          <List.Item
+            title="Join with an invite code"
+            description="Get access to a baby someone shared with you"
+            left={props => <List.Icon {...props} icon="ticket-confirmation-outline" />}
+            onPress={() => router.push('/(app)/join-baby')}
+          />
         </List.Section>
+
+        <Divider />
+
+        {selectedBaby?.id ? (
+          <List.Section>
+            <List.Subheader>Sharing</List.Subheader>
+            <List.Item
+              title={`Share ${selectedBaby.name}`}
+              description={
+                (selectedBaby.authorizedCaregivers?.length || 1) > 1
+                  ? `${selectedBaby.authorizedCaregivers!.length} caregivers have access`
+                  : 'Invite a partner or carer to log care together'
+              }
+              left={props => <List.Icon {...props} icon="account-multiple-plus-outline" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/sharing',
+                  params: { babyId: selectedBaby.id! },
+                })
+              }
+            />
+          </List.Section>
+        ) : null}
 
         <Divider />
 
@@ -221,6 +253,19 @@ export default function SettingsScreen() {
             )}
             onPress={() => changeAiConsent(!aiStatus?.consented)}
             disabled={aiLoading || aiBusy || !aiStatus || !aiStatus.enabled}
+          />
+          <List.Item
+            title="Missed sleep and feed hints"
+            description="Ask on Home when a gap looks unusual for your baby"
+            left={props => <List.Icon {...props} icon="timeline-question-outline" />}
+            right={() => (
+              <Switch
+                value={missedCare.enabled}
+                onValueChange={missedCare.setEnabled}
+                accessibilityLabel="Missed sleep and feed hints"
+              />
+            )}
+            onPress={() => missedCare.setEnabled(!missedCare.enabled)}
           />
         </List.Section>
 

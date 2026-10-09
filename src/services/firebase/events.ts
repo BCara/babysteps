@@ -8,6 +8,10 @@ import {
 } from '../../utils/breastFeed';
 import { cappedTimerEnd, timerDeadline } from '../../utils/timerLimits';
 import type { SleepType } from '../../utils/sleepLocation';
+import type {
+  SettlingDifficulty,
+  SettlingMetadata,
+} from '../../utils/sleepSettling';
 
 export type BabyEventType =
   | 'feed'
@@ -40,6 +44,9 @@ export interface BabyEventMetadata {
   amount?: number;
   unit?: 'ml' | 'oz';
   sleepType?: SleepType;
+  /** How long it took to get the baby down, kept out of the sleep's own duration. */
+  settlingMinutes?: number;
+  settlingDifficulty?: SettlingDifficulty;
   diaperCondition?: 'wet' | 'dirty' | 'both';
   diaperAmount?: DiaperAmount;
   wetDiaperAmount?: DiaperAmount;
@@ -306,6 +313,8 @@ export const startSleep = (
   sleepType?: SleepType,
   /** Set when the caregiver corrected the time the baby actually went down. */
   startTime = new Date(),
+  /** How the baby was got down, recorded before the sleep itself begins. */
+  settling?: SettlingMetadata,
 ) =>
   logEvent(babyId, {
     type: 'sleep',
@@ -313,7 +322,7 @@ export const startSleep = (
     endTime: null,
     source: 'app',
     loggedBy: userId,
-    metadata: { sleepType },
+    metadata: { sleepType, ...settling },
   });
 
 const stopTimedEvent = (

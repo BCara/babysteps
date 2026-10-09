@@ -1,4 +1,3 @@
-import { Alert } from 'react-native';
 import { formatNursingDuration } from '../../utils/breastFeed';
 import { formatNursingStartTime } from './startTime';
 import {
@@ -47,16 +46,6 @@ export default function NursingSavedScreen({
 }: NursingSavedScreenProps) {
   const chrome = useNursingChrome();
   const totalSeconds = leftSeconds + rightSeconds;
-
-  const confirmDiscard = () =>
-    Alert.alert(
-      'Discard this feed?',
-      'The saved feed and both side totals will be deleted. This cannot be undone.',
-      [
-        { text: 'Keep it', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: onDiscard },
-      ],
-    );
 
   return (
     <NursingPage chrome={chrome} accessibilityLabel="Nursing feed saved">
@@ -126,7 +115,8 @@ export default function NursingSavedScreen({
             key: 'discard',
             icon: 'trash-can-outline',
             label: 'Discard',
-            onPress: confirmDiscard,
+            // The host confirms before anything is deleted.
+            onPress: onDiscard,
             danger: true,
             disabled: busy,
             accessibilityLabel: 'Discard this saved feed',

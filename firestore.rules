@@ -91,6 +91,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Invite codes are created, accepted and revoked only through the
+    // sharing_* callable functions.
+    match /babyInvites/{code} {
+      allow read, write: if false;
+    }
+
     match /babies/{babyId} {
       allow create: if signedIn()
         && request.resource.data.authorizedCaregivers == [request.auth.uid];
@@ -112,6 +118,14 @@ service cloud.firestore {
 
       allow delete: if signedIn()
         && resource.data.authorizedCaregivers == [request.auth.uid];
+
+      // Who else can see this baby. Written by the sharing functions; a
+      // caregiver may remove only their own entry (account deletion).
+      match /caregivers/{caregiverId} {
+        allow read: if isAuthorizedCaregiver(babyId);
+        allow create, update: if false;
+        allow delete: if ownsUser(caregiverId);
+      }
 
       match /events/{eventId} {
         allow read: if isAuthorizedCaregiver(babyId);

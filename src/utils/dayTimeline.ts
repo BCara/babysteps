@@ -1,6 +1,7 @@
 import { careActionByType } from '../constants/careActions';
 import type { BabyEvent } from '../services/firebase/events';
 import { getEventDurationMinutes } from './eventSummary';
+import { breastDurationsForEvent } from './breastFeed';
 
 /**
  * Placement maths for the to-scale day timeline on the Summary screen. Blocks
@@ -38,6 +39,10 @@ export interface PlacedEvent {
 export const minutesToOffset = (minutes: number) =>
   (minutes / 60) * HOUR_HEIGHT;
 
+/** Where a tap on the track lands, in minutes past midnight. */
+export const offsetToMinutes = (offset: number) =>
+  Math.min(DAY_MINUTES, Math.max(0, Math.round((offset / HOUR_HEIGHT) * 60)));
+
 export const blockHeight = (spanMinutes: number) =>
   Math.max(MIN_BLOCK_HEIGHT, minutesToOffset(spanMinutes) - BLOCK_GAP);
 
@@ -53,6 +58,25 @@ const eventEnd = (event: BabyEvent, durationMinutes: number) => {
  * lanes. Lane counts are worked out per cluster of overlaps, so a lone feed at
  * 3am keeps the full width even when the evening is busy.
  */
+/**
+ * How long an event lasted for drawing. A nursing feed is its time on the
+ * breast — the side totals — not the span its timer was left running: a feed
+ * whose timer ran on for hours after six minutes of feeding is a six-minute
+ * block, not a three-hour one.
+ */
+const timelineDurationMinutes = (event: BabyEvent, now: Date) => {
+  if (event.type === 'feed' && event.metadata?.feedType === 'breast') {
+    const sides = breastDurationsForEvent(event, now.getTime());
+    const tracked =
+      sides.leftBreastDurationSeconds + sides.rightBreastDurationSeconds;
+    if (tracked > 0) return Math.max(1, Math.round(tracked / 60));
+  }
+  return getEventDurationMinutes(event, now);
+};
+
+const isNursing = (event: BabyEvent) =>
+  event.type === 'feed' && event.metadata?.feedType === 'breast';
+
 export const placeEvents = (
   events: BabyEvent[],
   day: Date,
@@ -67,14 +91,19 @@ export const placeEvents = (
         Math.max((event.startTime.getTime() - dayStart.getTime()) / 60_000, 0),
         DAY_MINUTES,
       );
-      const durationMinutes = getEventDurationMinutes(event, now);
+      const durationMinutes = timelineDurationMinutes(event, now);
       return {
         key: event.id || `${event.startTime.getTime()}-${index}`,
         event,
         startMinutes,
         spanMinutes: Math.min(durationMinutes, DAY_MINUTES - startMinutes),
         durationMinutes,
-        endTime: eventEnd(event, durationMinutes),
+        // Drawn from its side totals, so its end is too, not the stored one.
+        endTime: isNursing(event)
+          ? durationMinutes > 0
+            ? new Date(event.startTime.getTime() + durationMinutes * 60_000)
+            : null
+          : eventEnd(event, durationMinutes),
         clipped: startMinutes + durationMinutes > DAY_MINUTES,
         ongoing: !event.endTime && event.durationMinutes === undefined,
         lane: 0,
@@ -172,4 +201,91 @@ export const timelineEventTiming = (item: PlacedEvent) => {
   if (!item.endTime) return formatClock(item.event.startTime);
   const range = formatClockRange(item.event.startTime, item.endTime);
   return `${range} · ${formatBlockDuration(item.durationMinutes)}${item.ongoing ? ' so far' : ''}`;
+};
+
+/** Dragged blocks land on five-minute marks, like a calendar. */
+export const DRAG_SNAP_MINUTES = 5;
+/** The shortest a block may be resized down to. */
+export const MIN_RESIZE_MINUTES = 5;
+
+export type TimelineDragMode = 'move' | 'resize';
+
+/** A finger's travel on the rail, as whole snapped minutes. */
+export const dragDeltaMinutes = (translationY: number) =>
+  Math.round((translationY / HOUR_HEIGHT) * 60 / DRAG_SNAP_MINUTES) *
+  DRAG_SNAP_MINUTES;
+
+/**
+ * Whether a block can be picked up. A block carried over from the day before
+ * is drawn from midnight, not its real start, so dragging it would lie; and a
+ * running timer owns its own start.
+ */
+export const canDragPlaced = (item: PlacedEvent, day: Date) => {
+  const dayStart = new Date(day);
+  dayStart.setHours(0, 0, 0, 0);
+  return (
+    Boolean(item.event.id) && !item.ongoing && item.event.startTime >= dayStart
+  );
+};
+
+/** Only a finished, timed block has a bottom edge worth stretching. */
+export const canResizePlaced = (item: PlacedEvent) =>
+  Boolean(item.event.endTime) &&
+  !item.ongoing &&
+  !isNursing(item.event) &&
+  item.durationMinutes > 0;
+
+/**
+ * Keeps a drag on the shown day and out of the future: a move slides the whole
+ * block, a resize stretches its end but never shorter than five minutes.
+ */
+export const clampDragDelta = (
+  item: PlacedEvent,
+  mode: TimelineDragMode,
+  delta: number,
+  day: Date,
+  now = new Date(),
+) => {
+  const dayStart = new Date(day);
+  dayStart.setHours(0, 0, 0, 0);
+  const nowMinutes = (now.getTime() - dayStart.getTime()) / 60_000;
+  const ceiling = Math.min(DAY_MINUTES, nowMinutes);
+
+  if (mode === 'resize') {
+    const endMinutes = item.startMinutes + item.durationMinutes;
+    const min = item.startMinutes + MIN_RESIZE_MINUTES - endMinutes;
+    const max = Math.max(min, ceiling - endMinutes);
+    return Math.min(max, Math.max(min, delta));
+  }
+
+  const min = -item.startMinutes;
+  const latestStart = Math.min(
+    DAY_MINUTES - DRAG_SNAP_MINUTES,
+    ceiling - item.durationMinutes,
+  );
+  const max = Math.max(min, latestStart - item.startMinutes);
+  return Math.min(max, Math.max(min, delta));
+};
+
+/** The times to save once a dragged block is let go. */
+export const draggedEventTimes = (
+  item: PlacedEvent,
+  mode: TimelineDragMode,
+  delta: number,
+): Partial<Pick<BabyEvent, 'startTime' | 'endTime' | 'durationMinutes'>> => {
+  const { event } = item;
+  const shift = (date: Date) => new Date(date.getTime() + delta * 60_000);
+
+  if (mode === 'resize') {
+    const durationMinutes = item.durationMinutes + delta;
+    return {
+      endTime: new Date(event.startTime.getTime() + durationMinutes * 60_000),
+      ...(event.durationMinutes !== undefined ? { durationMinutes } : {}),
+    };
+  }
+
+  return {
+    startTime: shift(event.startTime),
+    ...(event.endTime ? { endTime: shift(event.endTime) } : {}),
+  };
 };

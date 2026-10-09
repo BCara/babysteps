@@ -9,11 +9,17 @@ const event = (type: BabyEvent['type'], time: string, metadata?: BabyEvent['meta
 });
 
 describe('last activity in care headers', () => {
-  it('shows elapsed hours and minutes instead of a clock time', () => {
-    expect(lastActivityAgo(new Date('2026-09-14T08:38:00Z'), now)).toBe('3h 22m ago');
-    expect(lastActivityAgo(new Date('2026-09-14T11:38:00Z'), now)).toBe('22m ago');
-    expect(lastActivityAgo(new Date('2026-09-14T09:00:00Z'), now)).toBe('3h ago');
-    expect(lastActivityAgo(now, now)).toBe('Just now');
+  // Built from the reader's own locale, so the expectation is too rather than
+  // pinning the suite to whichever timezone it happens to run in.
+  const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  it('gives the clock time and the gap since', () => {
+    expect(lastActivityAgo(new Date('2026-09-14T08:38:00Z'), now)).toBe(`${clock('2026-09-14T08:38:00Z')} · 3h 22m ago`);
+    expect(lastActivityAgo(new Date('2026-09-14T11:38:00Z'), now)).toBe(`${clock('2026-09-14T11:38:00Z')} · 22m ago`);
+    expect(lastActivityAgo(new Date('2026-09-14T09:00:00Z'), now)).toBe(`${clock('2026-09-14T09:00:00Z')} · 3h ago`);
+    expect(lastActivityAgo(now, now)).toBe(`${clock('2026-09-14T12:00:00Z')} · Just now`);
+  });
+  it('leads with something clock-shaped, whatever the locale makes of it', () => {
+    expect(lastActivityAgo(new Date('2026-09-14T08:38:00Z'), now)).toMatch(/^\d{1,2}[:.]\d{2}/);
   });
   it('keeps nursing and bottle history separate', () => {
     const nursing = event('feed', '2026-09-14T08:00:00Z', { feedType: 'breast' });

@@ -1,6 +1,6 @@
 import type { NursingMode } from '../theme/nursingTheme';
 
-// Keep stored values compatible: standard is Pastel, night is Dark.
+// Keep stored values compatible: standard is Day, night is Dark.
 export type NursingModePreference = 'auto' | 'standard' | 'night';
 export const NIGHT_START_HOUR = 21;
 export const NIGHT_END_HOUR = 7;

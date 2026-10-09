@@ -15,11 +15,13 @@ import { NursingScroll, NursingTextField } from '../nursing/NursingFields';
 import NursingStartTimeFields from '../nursing/NursingStartTimeFields';
 import SleepLocationPicker from './SleepLocationPicker';
 import AddSleepPlaceDialog from './AddSleepPlaceDialog';
+import SleepSettlingFields from './SleepSettlingFields';
 import {
   sleepLocationDefinitions,
   type CustomSleepLocation,
   type SleepType,
 } from '../../utils/sleepLocation';
+import type { SettlingDifficulty } from '../../utils/sleepSettling';
 
 interface SleepLogScreenProps {
   /** True when this is the running sleep being written down rather than a new one. */
@@ -34,6 +36,10 @@ interface SleepLogScreenProps {
   onSleepTypeChange: (next: SleepType | undefined) => void;
   customSleepLocations: CustomSleepLocation[];
   onAddSleepLocation: (label: string) => Promise<void>;
+  settlingMinutes: string;
+  onSettlingMinutesChange: (value: string) => void;
+  settlingDifficulty?: SettlingDifficulty;
+  onSettlingDifficultyChange: (next: SettlingDifficulty | undefined) => void;
   notes: string;
   onNotesChange: (value: string) => void;
   onVoiceFill: (values: VoiceEntryValues) => void;
@@ -62,6 +68,10 @@ export default function SleepLogScreen({
   onSleepTypeChange,
   customSleepLocations,
   onAddSleepLocation,
+  settlingMinutes,
+  onSettlingMinutesChange,
+  settlingDifficulty,
+  onSettlingDifficultyChange,
   notes,
   onNotesChange,
   onVoiceFill,
@@ -104,7 +114,6 @@ export default function SleepLogScreen({
         chrome={chrome}
         title={editingTimer ? 'Edit times' : 'Log sleep'}
         icon="sleep"
-        eyebrow="SLEEP"
         onBack={onClose}
         backLabel={editingTimer ? 'Back to timer' : 'Close'}
       />
@@ -133,7 +142,7 @@ export default function SleepLogScreen({
         />
         <NursingTextField
           chrome={chrome}
-          label="Duration · minutes"
+          label="Duration ï¿½ minutes"
           value={durationMinutes}
           onChangeText={onDurationChange}
           disabled={saving}
@@ -154,6 +163,15 @@ export default function SleepLogScreen({
           value={sleepType}
           onChange={onSleepTypeChange}
           onAdd={() => setAddingPlace(true)}
+          disabled={saving}
+        />
+
+        <SleepSettlingFields
+          chrome={chrome}
+          minutes={settlingMinutes}
+          onMinutesChange={onSettlingMinutesChange}
+          difficulty={settlingDifficulty}
+          onDifficultyChange={onSettlingDifficultyChange}
           disabled={saving}
         />
 

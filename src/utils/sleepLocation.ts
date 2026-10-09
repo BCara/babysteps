@@ -1,12 +1,24 @@
 /**
  * Where a baby slept.
  *
- * Three locations ship with the app and a caregiver can add their own, so an id
- * is an open string rather than a union. Custom ids carry a `custom:` prefix,
- * which keeps them from ever colliding with a built-in or with the legacy
- * `nap`/`night` values that older records still hold.
+ * Seven locations ship with the app and a caregiver can add their own, so an
+ * id is an open string rather than a union. Custom ids carry a `custom:`
+ * prefix, which keeps them from ever colliding with a built-in or with the
+ * legacy `nap`/`night` values that older records still hold — including a
+ * custom "Pram" added before Pram was built in, which keeps its own id.
+ *
+ * The order is the order the grid shows them in: where a newborn most often
+ * sleeps first, the occasional places after.
  */
-export const BUILT_IN_SLEEP_LOCATIONS = ['contactNap', 'car', 'cot'] as const;
+export const BUILT_IN_SLEEP_LOCATIONS = [
+  'contactNap',
+  'cot',
+  'bassinet',
+  'pram',
+  'car',
+  'carrier',
+  'parentsBed',
+] as const;
 
 export type BuiltInSleepLocation = (typeof BUILT_IN_SLEEP_LOCATIONS)[number];
 
@@ -45,14 +57,22 @@ export interface CustomSleepLocation {
 
 const builtInLabels: Record<BuiltInSleepLocation, string> = {
   contactNap: 'Contact',
-  car: 'Car',
   cot: 'Cot',
+  bassinet: 'Bassinet',
+  pram: 'Pram',
+  car: 'Car',
+  carrier: 'Carrier',
+  parentsBed: 'Our bed',
 };
 
 const builtInIcons: Record<BuiltInSleepLocation, string> = {
   contactNap: 'account-child',
-  car: 'car',
   cot: 'bed',
+  bassinet: 'cradle-outline',
+  pram: 'baby-carriage',
+  car: 'car',
+  carrier: 'bag-personal-outline',
+  parentsBed: 'bed-king-outline',
 };
 
 export const CUSTOM_SLEEP_ICON = 'sleep';

@@ -60,7 +60,7 @@ export default function DiaperAmountFields({
         onChange={onWetAmountChange}
       />
       <AmountField
-        label="Dirty amount"
+        label="Poo amount"
         value={dirtyAmount}
         onChange={onDirtyAmountChange}
       />

@@ -2,9 +2,19 @@ import type { BabyEvent } from '../services/firebase/events';
 import { homeCareActions } from '../constants/careActions';
 import { formatTimeSinceEventStart } from './feedTiming';
 
+/**
+ * When the last one was, both ways: the clock time to place it against the
+ * day, and the gap since to save working that out. Either alone leaves a
+ * question — "15:40" needs the current time to mean anything, and "6m ago"
+ * cannot be matched to anything else already written down.
+ */
 export function lastActivityAgo(startTime: Date, now = new Date()) {
   const elapsed = formatTimeSinceEventStart(startTime, now);
-  return elapsed === 'Just now' ? 'Just now' : `${elapsed} ago`;
+  const clock = startTime.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${clock} · ${elapsed === 'Just now' ? 'Just now' : `${elapsed} ago`}`;
 }
 
 export function lastCareActivity(events: BabyEvent[], icon: string, now = new Date()) {

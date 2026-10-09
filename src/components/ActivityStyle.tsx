@@ -35,7 +35,7 @@ export function ActivitySegments(props: ComponentProps<typeof PaperSegments>) {
     return <PaperSegments {...props} />;
   }
   return <View style={props.style}><NursingChoice chrome={chrome} label="" value={props.value as string}
-    options={props.buttons.map(button => ({ value: button.value, label: button.label as string }))}
+    options={props.buttons.map(button => ({ value: button.value, label: button.label as string, icon: typeof button.icon === 'string' ? button.icon : undefined }))}
     onChange={value => props.onValueChange(value)} /></View>;
 }
 

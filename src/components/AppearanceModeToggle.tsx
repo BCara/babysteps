@@ -9,7 +9,7 @@ export default function AppearanceModeToggle({ compact = false }: { compact?: bo
   const { mode, preference, setPreference } = useAppearance();
   const [open, setOpen] = useState(false);
 
-  const resolved = mode === 'night' ? 'dark' : 'pastel';
+  const resolved = mode === 'night' ? 'dark' : 'day';
 
   if (compact) return (
     <Menu visible={open} onDismiss={() => setOpen(false)} anchor={
@@ -19,7 +19,7 @@ export default function AppearanceModeToggle({ compact = false }: { compact?: bo
         onPress={() => setOpen(true)} />
     }>
       {([
-        ['auto', 'Automatic'], ['standard', 'Pastel'], ['night', 'Night'],
+        ['auto', 'Automatic'], ['standard', 'Day'], ['night', 'Night'],
       ] as const).map(([value, label]) => <Menu.Item key={value} title={label}
         leadingIcon={preference === value ? 'check' : undefined}
         onPress={() => { setOpen(false); void setPreference(value); }} />)}
@@ -47,7 +47,7 @@ export default function AppearanceModeToggle({ compact = false }: { compact?: bo
           icon: 'brightness-5',
           showSelectedCheck: false,
           style: styles.segment,
-          accessibilityLabel: 'Appearance: always pastel',
+          accessibilityLabel: 'Appearance: always day',
         },
         {
           value: 'night',

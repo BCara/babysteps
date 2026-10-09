@@ -130,6 +130,17 @@ export default function OnboardingScreen() {
           {babies.length ? 'Add baby' : 'Start tracking'}
         </Button>
 
+        {babies.length ? null : (
+          <Button
+            mode="text"
+            icon="ticket-confirmation-outline"
+            onPress={() => router.push('/(app)/join-baby')}
+            style={styles.joinButton}
+          >
+            Someone shared a baby with me
+          </Button>
+        )}
+
         <Text variant="bodySmall" style={styles.privacyNote}>
           PitterPatter stores this information securely in your private account. It
           is not used for advertising.
@@ -174,6 +185,9 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     minHeight: 52,
+  },
+  joinButton: {
+    marginTop: 12,
   },
   privacyNote: {
     textAlign: 'center',

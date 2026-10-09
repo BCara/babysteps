@@ -36,6 +36,12 @@ import {
   updateSleepEntry,
   type SleepTimeField,
 } from '../utils/sleepEntry';
+import {
+  checkSettlingMinutes,
+  settlingMinutesInput,
+  type SettlingDifficulty,
+} from '../utils/sleepSettling';
+import { nappyTypeOptions } from '../constants/nappyTypes';
 import DiaperAmountFields from './DiaperAmountFields';
 import NursingEditScreen from './nursing/NursingEditScreen';
 import {
@@ -137,6 +143,9 @@ export default function EventEditModal({
   >('usedNow');
   const [lastBreastSide, setLastBreastSide] = useState<'left' | 'right'>('left');
   const [sleepType, setSleepType] = useState<SleepType>('cot');
+  const [settlingMinutes, setSettlingMinutes] = useState('');
+  const [settlingDifficulty, setSettlingDifficulty] =
+    useState<SettlingDifficulty>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -188,6 +197,8 @@ export default function EventEditModal({
     );
     sleepEditOrder.current = [];
     setSleepType(event.metadata?.sleepType || []);
+    setSettlingMinutes(settlingMinutesInput(event.metadata?.settlingMinutes));
+    setSettlingDifficulty(event.metadata?.settlingDifficulty);
     setError('');
   }, [event?.id, visible]);
 
@@ -349,6 +360,12 @@ export default function EventEditModal({
       setError(sleepEntry.error);
       return;
     }
+    const settling =
+      event.type === 'sleep' ? checkSettlingMinutes(settlingMinutes) : null;
+    if (settling?.error) {
+      setError(settling.error);
+      return;
+    }
     const parsedAmount = amount ? Number(amount) : undefined;
     const parsedDurationSeconds = isNursingFeed
       ? parseDurationEntry(duration)
@@ -473,6 +490,14 @@ export default function EventEditModal({
             : event.metadata?.breastSideStartedAtMs,
           sleepType:
             event.type === 'sleep' ? sleepType : event.metadata?.sleepType,
+          settlingMinutes:
+            event.type === 'sleep'
+              ? settling!.minutes
+              : event.metadata?.settlingMinutes,
+          settlingDifficulty:
+            event.type === 'sleep'
+              ? settlingDifficulty
+              : event.metadata?.settlingDifficulty,
           diaperCondition:
             event.type === 'diaper' ? condition : event.metadata?.diaperCondition,
           ...(event.type === 'diaper'
@@ -547,6 +572,10 @@ export default function EventEditModal({
                 sleepType={sleepType}
                 onSleepTypeChange={setSleepType}
                 customSleepLocations={customSleepLocations}
+                settlingMinutes={settlingMinutes}
+                onSettlingMinutesChange={setSettlingMinutes}
+                settlingDifficulty={settlingDifficulty}
+                onSettlingDifficultyChange={setSettlingDifficulty}
                 notes={notes}
                 onNotesChange={setNotes}
                 onVoiceFill={handleVoiceFill}
@@ -595,7 +624,6 @@ export default function EventEditModal({
       icon={definition.icon}
       color={definition.color}
       onClose={onClose}
-      eyebrow="EDIT ACTIVITY"
       backLabel="Back"
       scrollable={false}
     >
@@ -720,11 +748,7 @@ export default function EventEditModal({
                   onValueChange={value =>
                     changeDiaperCondition(value as 'wet' | 'dirty' | 'both')
                   }
-                  buttons={[
-                    { value: 'wet', label: 'Wet' },
-                    { value: 'dirty', label: 'Dirty' },
-                    { value: 'both', label: 'Both' },
-                  ]}
+                  buttons={nappyTypeOptions}
                   style={styles.input}
                 />
                 <DiaperAmountFields

@@ -37,6 +37,12 @@ import {
   updateSleepEntry,
   type SleepTimeField,
 } from '../utils/sleepEntry';
+import {
+  checkSettlingMinutes,
+  settlingMinutesInput,
+  type SettlingDifficulty,
+} from '../utils/sleepSettling';
+import { nappyTypeOptions } from '../constants/nappyTypes';
 import DiaperAmountFields from './DiaperAmountFields';
 import NursingLogScreen from './nursing/NursingLogScreen';
 import SleepLogScreen from './sleep/SleepLogScreen';
@@ -75,6 +81,8 @@ export type QuickLogInput =
   | {
       type: 'sleep';
       sleepType?: SleepType;
+      settlingMinutes?: number;
+      settlingDifficulty?: SettlingDifficulty;
       startTime: Date;
       endTime: Date;
       durationMinutes: number;
@@ -96,8 +104,20 @@ interface LogModalProps {
   showCloseButton?: boolean;
   previousDiaper?: BabyEvent | null;
   initialStartTime?: Date;
+  /**
+   * More of a new entry filled in up front — a suggested missed sleep or feed —
+   * on top of `initialStartTime`. Everything stays editable before saving.
+   */
+  initialDraft?: LogDraft;
   customSleepLocations?: CustomSleepLocation[];
   onAddSleepLocation?: (label: string) => Promise<void>;
+}
+
+export interface LogDraft {
+  endTime?: Date;
+  durationMinutes?: number;
+  amount?: number;
+  unit?: 'ml' | 'oz';
 }
 
 export default function LogModal({
@@ -114,6 +134,7 @@ export default function LogModal({
   showCloseButton = true,
   previousDiaper,
   initialStartTime,
+  initialDraft,
   customSleepLocations = [],
   onAddSleepLocation = async () => undefined,
 }: LogModalProps) {
@@ -134,6 +155,9 @@ export default function LogModal({
   const [dirtyDiaperAmount, setDirtyDiaperAmount] =
     useState<DiaperAmount>();
   const [sleepType, setSleepType] = useState<SleepType | undefined>();
+  const [settlingMinutes, setSettlingMinutes] = useState('');
+  const [settlingDifficulty, setSettlingDifficulty] =
+    useState<SettlingDifficulty>();
   const [saving, setSaving] = useState(false);
   const [nursingDurationsEdited, setNursingDurationsEdited] = useState(false);
   const [existingEventId, setExistingEventId] = useState<string>();
@@ -160,7 +184,7 @@ export default function LogModal({
       return;
     }
 
-    const formKey = `${type || 'none'}:${feedType}:${initialStartTime?.getTime() ?? 'now'}`;
+    const formKey = `${type || 'none'}:${feedType}:${initialStartTime?.getTime() ?? 'now'}:${initialDraft?.endTime?.getTime() ?? ''}`;
     if (initializedFormRef.current === formKey) return;
     initializedFormRef.current = formKey;
 
@@ -193,6 +217,8 @@ export default function LogModal({
       setWetDiaperAmount(undefined);
       setDirtyDiaperAmount(undefined);
       setNursingDurationsEdited(false);
+      setSettlingMinutes('');
+      setSettlingDifficulty(undefined);
       setExistingEventId(undefined);
       setError('');
       if (matchingActiveFeed) {
@@ -232,11 +258,30 @@ export default function LogModal({
       }
       if (type === 'sleep' && activeSleep) {
         setSleepType(optionalSleepLocation(activeSleep.metadata?.sleepType));
+        // Settling was recorded when the timer started; writing the sleep down
+        // must not quietly drop it.
+        setSettlingMinutes(
+          settlingMinutesInput(activeSleep.metadata?.settlingMinutes),
+        );
+        setSettlingDifficulty(activeSleep.metadata?.settlingDifficulty);
         const trackedMinutes = sleepMinutesBetween(
           initialStartTime || activeSleep.startTime,
           new Date(),
         );
         if (trackedMinutes > 0) setDuration(String(trackedMinutes));
+      }
+      if (initialDraft && !matchingActiveFeed && !(type === 'sleep' && activeSleep)) {
+        if (type === 'sleep' && initialDraft.endTime) {
+          setSleepEndTime(initialDraft.endTime);
+          sleepEditOrder.current = ['start', 'end'];
+        }
+        if (initialDraft.durationMinutes) {
+          setDuration(String(initialDraft.durationMinutes));
+        }
+        if (type === 'feed' && initialDraft.amount) {
+          setAmount(String(initialDraft.amount));
+          if (initialDraft.unit) setUnit(initialDraft.unit);
+        }
       }
     }
   }, [
@@ -245,6 +290,7 @@ export default function LogModal({
     defaultBottleUnit,
     defaultFeedType,
     feedType,
+    initialDraft,
     initialStartTime,
     type,
     visible,
@@ -409,6 +455,11 @@ export default function LogModal({
     setStartTime(nextStartTime);
     setError('');
     if (type !== 'feed' || feedType !== 'breast' || !activeTimer) return;
+    // Moving the start of a running feed re-derives each side from the timer —
+    // but only while the timer is still the source of those numbers. Once they
+    // have been typed by hand they are the record, and changing the time must
+    // not quietly put the timer's own minutes back in their place.
+    if (nursingDurationsEdited) return;
 
     const adjustedTiming = adjustBreastTimingForStartChange(
       activeTimer.metadata,
@@ -480,6 +531,8 @@ export default function LogModal({
       type === 'sleep'
         ? checkSleepEntry({ startTime, endTime: sleepEndTime, durationInput: duration })
         : null;
+    const settling =
+      type === 'sleep' ? checkSettlingMinutes(settlingMinutes) : null;
 
     if (
       parsedAmount === null ||
@@ -496,6 +549,10 @@ export default function LogModal({
     }
     if (type === 'diaper' && startTime.getTime() > Date.now()) {
       setError('Choose a nappy time that is not in the future.');
+      return;
+    }
+    if (settling?.error) {
+      setError(settling.error);
       return;
     }
     if (sleepEntry?.error) {
@@ -580,6 +637,8 @@ export default function LogModal({
         await onSave({
           type,
           sleepType,
+          settlingMinutes: settling!.minutes,
+          settlingDifficulty,
           startTime: sleepEntry!.times!.startTime,
           endTime: sleepEntry!.times!.endTime,
           durationMinutes: sleepEntry!.times!.durationMinutes,
@@ -666,6 +725,10 @@ export default function LogModal({
         onSleepTypeChange={setSleepType}
         customSleepLocations={customSleepLocations}
         onAddSleepLocation={onAddSleepLocation}
+        settlingMinutes={settlingMinutes}
+        onSettlingMinutesChange={setSettlingMinutes}
+        settlingDifficulty={settlingDifficulty}
+        onSettlingDifficultyChange={setSettlingDifficulty}
         notes={notes}
         onNotesChange={setNotes}
         onVoiceFill={handleVoiceFill}
@@ -802,11 +865,7 @@ export default function LogModal({
                   onValueChange={value =>
                     changeDiaperCondition(value as 'wet' | 'dirty' | 'both')
                   }
-                  buttons={[
-                    { value: 'wet', label: 'Wet' },
-                    { value: 'dirty', label: 'Dirty' },
-                    { value: 'both', label: 'Both' },
-                  ]}
+                  buttons={nappyTypeOptions}
                   style={styles.fieldGroup}
                 />
                 <DiaperAmountFields

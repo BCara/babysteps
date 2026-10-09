@@ -450,3 +450,66 @@ describe('custom sleep places', () => {
     await assertSucceeds(updateDoc(profile, { customSleepLocations: [] }));
   });
 });
+
+describe('caregiver sharing', () => {
+  beforeEach(async () => {
+    await seedBaby(['owner', 'partner']);
+    await testEnvironment.withSecurityRulesDisabled(async context => {
+      const database = context.firestore();
+      await setDoc(doc(database, 'babies/baby-1/caregivers/owner'), {
+        displayName: 'Owner',
+        email: 'owner@example.com',
+      });
+      await setDoc(doc(database, 'babies/baby-1/caregivers/partner'), {
+        displayName: 'Partner',
+        email: 'partner@example.com',
+      });
+      await setDoc(doc(database, 'babyInvites/K7QM3XPD'), {
+        babyId: 'baby-1',
+        createdBy: 'owner',
+        acceptedBy: null,
+        revoked: false,
+      });
+    });
+  });
+
+  it('lets caregivers see who else has access, but not outsiders', async () => {
+    const partnerDb = testEnvironment.authenticatedContext('partner').firestore();
+    const otherDb = testEnvironment.authenticatedContext('other').firestore();
+
+    await assertSucceeds(getDoc(doc(partnerDb, 'babies/baby-1/caregivers/owner')));
+    await assertFails(getDoc(doc(otherDb, 'babies/baby-1/caregivers/owner')));
+  });
+
+  it('only lets a caregiver delete their own caregiver entry', async () => {
+    const partnerDb = testEnvironment.authenticatedContext('partner').firestore();
+
+    await assertFails(
+      setDoc(doc(partnerDb, 'babies/baby-1/caregivers/partner'), {
+        displayName: 'Renamed',
+      }),
+    );
+    await assertFails(deleteDoc(doc(partnerDb, 'babies/baby-1/caregivers/owner')));
+    await assertSucceeds(deleteDoc(doc(partnerDb, 'babies/baby-1/caregivers/partner')));
+  });
+
+  it('keeps invite codes server-only', async () => {
+    const ownerDb = testEnvironment.authenticatedContext('owner').firestore();
+    const otherDb = testEnvironment.authenticatedContext('other').firestore();
+
+    await assertFails(getDoc(doc(ownerDb, 'babyInvites/K7QM3XPD')));
+    await assertFails(getDoc(doc(otherDb, 'babyInvites/K7QM3XPD')));
+    await assertFails(
+      updateDoc(doc(otherDb, 'babyInvites/K7QM3XPD'), { acceptedBy: 'other' }),
+    );
+  });
+
+  it('does not let an outsider add themselves to a baby profile', async () => {
+    const otherDb = testEnvironment.authenticatedContext('other').firestore();
+    await assertFails(
+      updateDoc(doc(otherDb, 'babies/baby-1'), {
+        authorizedCaregivers: ['owner', 'partner', 'other'],
+      }),
+    );
+  });
+});

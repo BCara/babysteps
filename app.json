@@ -44,8 +44,14 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow PitterPatter to choose an appointment or immunisation image for optional field extraction.",
-          "cameraPermission": "Allow PitterPatter to photograph an appointment or immunisation record for optional field extraction.",
-          "microphonePermission": false
+          "cameraPermission": "Allow PitterPatter to photograph an appointment or immunisation record for optional field extraction."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow PitterPatter to use the microphone so you can log feeds, sleeps, and nappies by voice.",
+          "speechRecognitionPermission": "Allow PitterPatter to recognise your speech so voice entries can be turned into care logs."
         }
       ],
       "expo-calendar",

@@ -1,11 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Surface, Text, useTheme } from 'react-native-paper';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import {
+  describeMicrophoneDenial,
+  MICROPHONE_SETTINGS_FAILED_MESSAGE,
+  MICROPHONE_SETTINGS_LABEL,
+} from '../utils/microphonePermission';
 import {
   parseVoiceCommand,
   VoiceCommand,
@@ -29,6 +34,7 @@ export default function VoiceInputCard({
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [canOpenSettings, setCanOpenSettings] = useState(false);
   const autoStartAttempted = useRef(false);
   const ownsRecognitionSession = useRef(false);
   const parsed = useMemo(() => parseVoiceCommand(transcript), [transcript]);
@@ -36,6 +42,7 @@ export default function VoiceInputCard({
   useSpeechRecognitionEvent('start', () => {
     if (!ownsRecognitionSession.current) return;
     setListening(true);
+    setCanOpenSettings(false);
     setError('');
   });
   useSpeechRecognitionEvent('end', () => {
@@ -53,22 +60,42 @@ export default function VoiceInputCard({
     ownsRecognitionSession.current = false;
     setListening(false);
     if (event.error === 'aborted') return;
+    if (event.error === 'not-allowed') {
+      const denial = describeMicrophoneDenial(
+        { granted: false, canAskAgain: false },
+        Platform.OS,
+      );
+      setCanOpenSettings(denial.canOpenSettings);
+      setError(denial.message);
+      return;
+    }
+    setCanOpenSettings(false);
     setError(
       event.error === 'no-speech' || event.error === 'speech-timeout'
         ? 'I did not hear anything. Tap the microphone and try again.'
-        : event.error === 'not-allowed'
-          ? 'Microphone access is needed for voice input.'
-          : 'Voice input is unavailable right now. Please try again.',
+        : 'Voice input is unavailable right now. Please try again.',
     );
   });
+
+  const openSettings = useCallback(async () => {
+    try {
+      await Linking.openSettings();
+    } catch {
+      setCanOpenSettings(false);
+      setError(MICROPHONE_SETTINGS_FAILED_MESSAGE);
+    }
+  }, []);
 
   const startListening = useCallback(async () => {
     setTranscript('');
     setError('');
+    setCanOpenSettings(false);
     const permission =
       await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!permission.granted) {
-      setError('Microphone access is needed for voice input.');
+      const denial = describeMicrophoneDenial(permission, Platform.OS);
+      setCanOpenSettings(denial.canOpenSettings);
+      setError(denial.message);
       return;
     }
 
@@ -94,12 +121,14 @@ export default function VoiceInputCard({
     ownsRecognitionSession.current = false;
     setListening(false);
     setTranscript('');
+    setCanOpenSettings(false);
     setError('');
   };
 
   const confirm = async () => {
     if (!parsed.command || saving) return;
     setSaving(true);
+    setCanOpenSettings(false);
     setError('');
     try {
       await onCommand(parsed.command);
@@ -237,6 +266,16 @@ export default function VoiceInputCard({
       ) : null}
 
       <View style={styles.actions}>
+        {canOpenSettings ? (
+          <Button
+            mode="outlined"
+            icon="cog-outline"
+            onPress={openSettings}
+            accessibilityHint="Opens the system settings for PitterPatter"
+          >
+            {MICROPHONE_SETTINGS_LABEL}
+          </Button>
+        ) : null}
         {listening ? (
           <Button
             mode="outlined"
@@ -331,6 +370,7 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 13,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: 8,
   },

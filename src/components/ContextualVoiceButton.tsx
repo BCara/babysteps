@@ -1,11 +1,16 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useActivityHeaderVoice } from './ActivityHeaderVoice';
-import { StyleSheet, View } from 'react-native';
-import { IconButton, Text, useTheme } from 'react-native-paper';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
+import { Button, IconButton, Text, useTheme } from 'react-native-paper';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import {
+  describeMicrophoneDenial,
+  MICROPHONE_SETTINGS_FAILED_MESSAGE,
+  MICROPHONE_SETTINGS_LABEL,
+} from '../utils/microphonePermission';
 import {
   parseContextualVoiceEntry,
   type VoiceEntryContext,
@@ -35,12 +40,14 @@ export default function ContextualVoiceButton({
   const [listening, setListening] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [canOpenSettings, setCanOpenSettings] = useState(false);
   const ownsRecognitionSession = useRef(false);
 
   useSpeechRecognitionEvent('start', () => {
     if (!ownsRecognitionSession.current) return;
     setListening(true);
     setIsError(false);
+    setCanOpenSettings(false);
     setMessage('Listening…');
   });
   useSpeechRecognitionEvent('end', () => {
@@ -68,23 +75,44 @@ export default function ContextualVoiceButton({
     setListening(false);
     if (event.error === 'aborted') return;
     setIsError(true);
+    if (event.error === 'not-allowed') {
+      const denial = describeMicrophoneDenial(
+        { granted: false, canAskAgain: false },
+        Platform.OS,
+      );
+      setCanOpenSettings(denial.canOpenSettings);
+      setMessage(denial.message);
+      return;
+    }
+    setCanOpenSettings(false);
     setMessage(
       event.error === 'no-speech' || event.error === 'speech-timeout'
         ? 'I did not hear anything. Tap the microphone and try again.'
-        : event.error === 'not-allowed'
-          ? 'Microphone access is needed for voice input.'
-          : 'Voice input is unavailable right now. Please try again.',
+        : 'Voice input is unavailable right now. Please try again.',
     );
   });
+
+  const openSettings = async () => {
+    try {
+      await Linking.openSettings();
+    } catch {
+      setCanOpenSettings(false);
+      setIsError(true);
+      setMessage(MICROPHONE_SETTINGS_FAILED_MESSAGE);
+    }
+  };
 
   const startListening = async () => {
     setMessage('');
     setIsError(false);
+    setCanOpenSettings(false);
     const permission =
       await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!permission.granted) {
+      const denial = describeMicrophoneDenial(permission, Platform.OS);
       setIsError(true);
-      setMessage('Microphone access is needed for voice input.');
+      setCanOpenSettings(denial.canOpenSettings);
+      setMessage(denial.message);
       return;
     }
 
@@ -107,7 +135,7 @@ export default function ContextualVoiceButton({
             : header?.color ?? iconColor ?? theme.colors.primary
         }
         containerColor={header ? 'rgba(255,255,255,0.12)' : containerColor}
-        size={header ? 30 : 24}
+        size={header ? 22 : 24}
         style={[styles.microphoneButton, header && styles.headerMicrophoneButton]}
         onPress={
           listening
@@ -124,21 +152,32 @@ export default function ContextualVoiceButton({
         }
       />
   );
+  const feedbackColor = isError
+    ? theme.colors.error
+    : header?.color ?? messageColor ?? theme.colors.onSurfaceVariant;
   const feedback = message ? (
-        <Text
-          variant="bodySmall"
-          accessibilityLiveRegion="polite"
-          style={[
-            styles.message,
-            {
-              color: isError
-                ? theme.colors.error
-                : header?.color ?? messageColor ?? theme.colors.onSurfaceVariant,
-            },
-          ]}
-        >
-          {message}
-        </Text>
+        <View style={styles.feedback}>
+          <Text
+            variant="bodySmall"
+            accessibilityLiveRegion="polite"
+            style={[styles.message, { color: feedbackColor }]}
+          >
+            {message}
+          </Text>
+          {canOpenSettings ? (
+            <Button
+              compact
+              mode="text"
+              icon="cog-outline"
+              onPress={openSettings}
+              textColor={feedbackColor}
+              style={styles.settingsButton}
+              accessibilityHint="Opens the system settings for PitterPatter"
+            >
+              {MICROPHONE_SETTINGS_LABEL}
+            </Button>
+          ) : null}
+        </View>
       ) : null;
 
   useLayoutEffect(() => {
@@ -160,12 +199,19 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   headerMicrophoneButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  feedback: {
+    alignItems: 'flex-start',
   },
   message: {
     marginTop: 7,
     lineHeight: 18,
+  },
+  settingsButton: {
+    marginTop: 2,
+    marginLeft: -8,
   },
 });

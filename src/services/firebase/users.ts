@@ -122,8 +122,10 @@ export const deleteUserData = async (userId: string) => {
     if (caregivers.length === 1 && caregivers[0] === userId) {
       const events = await babyDocument.ref.collection('events').get();
       await commitDeletes(events.docs.map(event => event.ref));
+      await babyDocument.ref.collection('caregivers').doc(userId).delete();
       await babyDocument.ref.delete();
     } else {
+      await babyDocument.ref.collection('caregivers').doc(userId).delete();
       await babyDocument.ref.update({
         authorizedCaregivers: firestore.FieldValue.arrayRemove(userId),
         updatedAt: firestore.FieldValue.serverTimestamp(),

@@ -32,7 +32,6 @@ interface ExpandedQuickCareViewProps {
   hideHero?: boolean;
   /** Forms with their own ScrollView use the available height directly. */
   scrollable?: boolean;
-  eyebrow?: string;
   backLabel?: string;
   children: ReactNode;
 }
@@ -45,7 +44,6 @@ function ExpandedQuickCareContent({
   onClose,
   hideHero = false,
   scrollable = true,
-  eyebrow = 'QUICK CARE',
   backLabel = 'Home',
   children,
 }: ExpandedQuickCareViewProps) {
@@ -159,7 +157,7 @@ function ExpandedQuickCareContent({
           >
             {!hideHero && chrome ? (
               <NursingHeader chrome={chrome} title={title} icon={icon} onBack={onClose}
-                backLabel={backLabel} eyebrow={eyebrow} bleedPagePadding={false} />
+                backLabel={backLabel} bleedPagePadding={false} />
             ) : null}
 
             <KeyboardAvoidingView

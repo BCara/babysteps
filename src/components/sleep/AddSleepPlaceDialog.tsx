@@ -73,7 +73,7 @@ export default function AddSleepPlaceDialog({
             variant="bodySmall"
             style={{ color: chrome.flat.textSecondary }}
           >
-            It joins Contact, Car and Cot everywhere sleep is logged.
+            It joins the other places everywhere sleep is logged.
           </Text>
 
           <TextInput
@@ -87,7 +87,7 @@ export default function AddSleepPlaceDialog({
             maxLength={SLEEP_LABEL_MAX_LENGTH}
             autoFocus
             disabled={saving}
-            placeholder="Pram"
+            placeholder="Nan’s house"
             style={styles.input}
             onSubmitEditing={() => void submit()}
             returnKeyType="done"

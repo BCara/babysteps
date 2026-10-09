@@ -25,14 +25,20 @@ describe('sleep locations', () => {
   it('lists the built-ins first, then the caregiver’s own', () => {
     expect(sleepLocationDefinitions([pram]).map(d => d.id)).toEqual([
       'contactNap',
-      'car',
       'cot',
+      'bassinet',
+      'pram',
+      'car',
+      'carrier',
+      'parentsBed',
       'custom:pram',
     ]);
   });
 
   it('names every kind of location, including the legacy values', () => {
     expect(sleepLocationLabel('cot')).toBe('Cot');
+    expect(sleepLocationLabel('parentsBed')).toBe('Our bed');
+    expect(sleepLocationLabel('bassinet')).toBe('Bassinet');
     expect(sleepLocationLabel('contactNap')).toBe('Contact');
     expect(sleepLocationLabel('night')).toBe('Night sleep');
     expect(sleepLocationLabel('nap')).toBe('Nap');

@@ -8,6 +8,7 @@ import {
   View,
   type KeyboardTypeOptions,
 } from 'react-native';
+import { Icon } from 'react-native-paper';
 import type { NursingChrome } from './NursingChrome';
 
 /**
@@ -92,7 +93,7 @@ export function NursingChoice<Value extends string>({
   chrome: NursingChrome;
   label: string;
   value: Value;
-  options: Array<{ value: Value; label: string }>;
+  options: Array<{ value: Value; label: string; icon?: string }>;
   onChange: (next: Value) => void;
   disabled?: boolean;
 }) {
@@ -136,6 +137,17 @@ export function NursingChoice<Value extends string>({
                       },
                 ]}
               >
+                {option.icon ? (
+                  <Icon
+                    source={option.icon}
+                    size={18}
+                    color={
+                      selected
+                        ? chrome.flat.textOnFill
+                        : chrome.flat.textPrimary
+                    }
+                  />
+                ) : null}
                 <Animated.Text
                   style={[
                     styles.choiceLabel,
@@ -211,6 +223,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,

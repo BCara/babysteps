@@ -1,7 +1,9 @@
-import { Alert, Platform } from 'react-native';
+import { useState } from 'react';
 import { useAppearance } from '../providers/AppearanceProvider';
 import { formatTimerSeconds } from '../utils/feedTiming';
 import NursingStartTimeFields from './nursing/NursingStartTimeFields';
+import MinutesDialog from './nursing/MinutesDialog';
+import { TIMER_LIMIT_MINUTES } from '../utils/timerLimits';
 import {
   NursingActionRow,
   NursingHeader,
@@ -11,6 +13,7 @@ import {
   NursingSideRow,
   NursingSpacer,
   NursingTotal,
+  NursingTotalSlot,
   useNursingChrome,
 } from './nursing/NursingChrome';
 
@@ -30,6 +33,10 @@ export interface NursingTimerScreenProps {
   onSwitchSide: (side: 'left' | 'right') => void;
   onFinish: () => void;
   onEditTimes: () => void;
+  /** Corrects one side's time mid-feed; the other side keeps counting. */
+  onSetSideSeconds?: (side: 'left' | 'right', seconds: number) => void;
+  /** Writes down a feed from earlier without touching the one running. */
+  onAddEarlier?: () => void;
   onDiscard: () => void;
   onChangeStartTime?: (startTime: Date) => void;
 }
@@ -49,29 +56,24 @@ export default function NursingTimerScreen({
   onSwitchSide,
   onFinish,
   onEditTimes,
+  onSetSideSeconds,
+  onAddEarlier,
   onDiscard,
   onChangeStartTime,
 }: NursingTimerScreenProps) {
   const { mode } = useAppearance();
   const chrome = useNursingChrome();
+  const [editingSide, setEditingSide] = useState<'left' | 'right' | null>(null);
 
 
 
   const totalSeconds = leftSeconds + rightSeconds;
 
-  const confirmDiscard = () =>
-    Alert.alert(
-      'Discard this feed?',
-      'The timer and both side totals will be deleted. This cannot be undone.',
-      [
-        { text: 'Keep feeding', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: onDiscard },
-      ],
-    );
-
   return (
     <NursingPage
       chrome={chrome}
+      // Fixed slots above the cards: a short screen scrolls rather than squeezing.
+      scrollable
       accessibilityLabel={`Nursing timer, ${mode} brightness`}
     >
       <NursingHeader
@@ -89,15 +91,13 @@ export default function NursingTimerScreen({
         disabled={busy || !onChangeStartTime}
       />
 
-      <NursingSpacer />
-
-      <NursingTotal
-        chrome={chrome}
-        value={formatTimerSeconds(totalSeconds)}
-        caption="Total"
-      />
-
-      <NursingSpacer />
+      <NursingTotalSlot>
+        <NursingTotal
+          chrome={chrome}
+          value={formatTimerSeconds(totalSeconds)}
+          caption="Total"
+        />
+      </NursingTotalSlot>
 
       <NursingSideRow>
         {SIDES.map(side => {
@@ -121,6 +121,7 @@ export default function NursingTimerScreen({
               lastUsed={previousFeedSide === side}
               disabled={busy}
               onPress={() => (isActive ? onPause() : onSwitchSide(side))}
+              onEditTime={onSetSideSeconds ? () => setEditingSide(side) : undefined}
               accessibilityLabel={`${label} side, ${formatTimerSeconds(
                 seconds,
               )}. ${pillText}.`}
@@ -142,11 +143,24 @@ export default function NursingTimerScreen({
             onPress: onEditTimes,
             disabled: busy,
           },
+          ...(onAddEarlier
+            ? [
+                {
+                  key: 'add',
+                  icon: 'clock-plus-outline',
+                  label: 'Add earlier',
+                  onPress: onAddEarlier,
+                  disabled: busy,
+                  accessibilityLabel: 'Add a feed from earlier',
+                },
+              ]
+            : []),
           {
             key: 'discard',
             icon: 'trash-can-outline',
             label: 'Discard',
-            onPress: confirmDiscard,
+            // The host confirms before anything is deleted.
+            onPress: onDiscard,
             danger: true,
             disabled: busy,
             accessibilityLabel: 'Discard this feed',
@@ -160,6 +174,21 @@ export default function NursingTimerScreen({
         label="Finish nursing"
         onPress={onFinish}
         disabled={busy}
+      />
+      <MinutesDialog
+        chrome={chrome}
+        visible={editingSide !== null}
+        title={`How long on the ${editingSide ?? 'left'} side?`}
+        label="Minutes on this side"
+        minutes={Math.round(
+          (editingSide === 'right' ? rightSeconds : leftSeconds) / 60,
+        )}
+        minMinutes={0}
+        maxMinutes={TIMER_LIMIT_MINUTES.feed}
+        onDismiss={() => setEditingSide(null)}
+        onSave={minutes => {
+          if (editingSide) onSetSideSeconds?.(editingSide, minutes * 60);
+        }}
       />
     </NursingPage>
   );

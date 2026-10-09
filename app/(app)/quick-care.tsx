@@ -684,7 +684,7 @@ function QuickCareScreenContent() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {chrome ? <NursingHeader chrome={chrome} title={config.title} icon={config.icon}
-        onBack={goHome} backLabel="Home" eyebrow="QUICK CARE" bleedPagePadding={false} /> : null}
+        onBack={goHome} backLabel="Home" bleedPagePadding={false} /> : null}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}

@@ -102,7 +102,6 @@ export default function NursingEditScreen({
           chrome={chrome}
           title="Edit nursing"
           icon="mother-nurse"
-          eyebrow="NURSING"
           onBack={onClose}
           backLabel="Close"
         />

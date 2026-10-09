@@ -34,6 +34,8 @@ export default function AppLayout() {
             options={{ presentation: 'modal', gestureEnabled: false }}
           />
           <Stack.Screen name="widget-settings" />
+          <Stack.Screen name="sharing" />
+          <Stack.Screen name="join-baby" options={{ presentation: 'modal' }} />
         </Stack>
       </EventProvider>
     </BabyProvider>

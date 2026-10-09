@@ -6,6 +6,8 @@ export interface Baby {
   dateOfBirth: Date;
   gender?: string;
   isActive: boolean;
+  /** Everyone who can see and log for this baby; the first entry created it. */
+  authorizedCaregivers?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -74,6 +76,7 @@ export const subscribeToBabies = (
               id: document.id,
               ...data,
               dateOfBirth: data.dateOfBirth.toDate(),
+              authorizedCaregivers: document.data().authorizedCaregivers || [],
               createdAt: data.createdAt?.toDate?.(),
               updatedAt: data.updatedAt?.toDate?.(),
             } as Baby;

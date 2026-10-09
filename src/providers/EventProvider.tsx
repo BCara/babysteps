@@ -31,6 +31,7 @@ import { buildMergePlan } from '../utils/mergeEvents';
 import { mergeEventStreams } from '../utils/mergeEventStreams';
 import { careEventTimes } from '../utils/eventEditing';
 import type { SleepType } from '../utils/sleepLocation';
+import type { SettlingMetadata } from '../utils/sleepSettling';
 import { buildQuickCareWidgetSnapshots } from '../utils/widgetSnapshots';
 import { syncQuickCareWidgetSnapshots } from '../services/widgetSettings';
 import { useAuth } from './AuthProvider';
@@ -67,6 +68,7 @@ interface EventContextValue {
     sleepType?: SleepType,
     /** Manual entries supply their own times; voice and widget logs end now. */
     times?: { startTime?: Date; endTime?: Date },
+    settling?: SettlingMetadata,
   ) => Promise<string>;
   startFeed: (input: StartFeedInput) => Promise<string>;
   stopFeed: (eventOverride?: BabyEvent) => Promise<void>;
@@ -92,7 +94,11 @@ interface EventContextValue {
   startPumping: (side?: 'left' | 'right' | 'both') => Promise<string>;
   stopPumping: () => Promise<void>;
   cancelPumping: () => Promise<void>;
-  startSleep: (sleepType?: SleepType, startTime?: Date) => Promise<string>;
+  startSleep: (
+    sleepType?: SleepType,
+    startTime?: Date,
+    settling?: SettlingMetadata,
+  ) => Promise<string>;
   stopSleep: () => Promise<void>;
   cancelSleep: () => Promise<void>;
   editEvent: (
@@ -296,7 +302,7 @@ export function EventProvider({ children }: PropsWithChildren) {
           },
         }, input.startTime ? undefined : activeSleep);
       },
-      logSleep: async (durationMinutes, notes, sleepType, times) => {
+      logSleep: async (durationMinutes, notes, sleepType, times, settling) => {
         const { userId, babyId } = requireContext();
         const endTime = times?.endTime || new Date();
         const startTime =
@@ -310,7 +316,7 @@ export function EventProvider({ children }: PropsWithChildren) {
           source: 'app',
           loggedBy: userId,
           notes: notes?.trim() || undefined,
-          metadata: { sleepType },
+          metadata: { sleepType, ...settling },
         });
       },
       startFeed: async input => {
@@ -398,10 +404,10 @@ export function EventProvider({ children }: PropsWithChildren) {
         if (!activePumping?.id) throw new Error('There is no pumping timer running.');
         await softDeleteEvent(babyId, activePumping.id);
       },
-      startSleep: async (sleepType, startTime) => {
+      startSleep: async (sleepType, startTime, settling) => {
         const { userId, babyId } = requireContext();
         if (activeSleep) throw new Error('A sleep timer is already running.');
-        return createSleepEvent(babyId, userId, sleepType, startTime);
+        return createSleepEvent(babyId, userId, sleepType, startTime, settling);
       },
       stopSleep: async () => {
         const { babyId } = requireContext();

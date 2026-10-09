@@ -14,9 +14,11 @@ interface Props {
   onStop: () => void;
   onCancel: () => void;
   onManual: () => void;
+  /** Writes down a pumping session from earlier without touching this one. */
+  onAddEarlier?: () => void;
 }
 
-export default function ActivePumpingTimer({ startTime, side, busy, onChangeSide, onStop, onCancel, onManual }: Props) {
+export default function ActivePumpingTimer({ startTime, side, busy, onChangeSide, onStop, onCancel, onManual, onAddEarlier }: Props) {
   const { colors: eventColors } = useCarePalette();
   const theme = useTheme();
   const [elapsed, setElapsed] = useState(Date.now() - startTime.getTime());
@@ -35,6 +37,7 @@ export default function ActivePumpingTimer({ startTime, side, busy, onChangeSide
       <SegmentedButtons value={side} onValueChange={value => onChangeSide(value as 'left' | 'right' | 'both')} buttons={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }, { value: 'both', label: 'Both' }]} />
       <Text variant="bodySmall" style={styles.limitHint}>Stops automatically after {timerLimitLabel(TIMER_LIMIT_MINUTES.pumping)}</Text>
       <Button mode="text" icon="pencil-outline" onPress={onManual} disabled={busy} style={styles.manual}>Manual entry</Button>
+      {onAddEarlier ? <Button mode="text" icon="clock-plus-outline" onPress={onAddEarlier} disabled={busy} style={styles.manual}>Add earlier</Button> : null}
     </Surface>
   );
 }

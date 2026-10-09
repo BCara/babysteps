@@ -108,3 +108,23 @@ export const updateSleepEntry = (
   }
   return { ...next, order };
 };
+
+/**
+ * Times for a duration typed against a known start.
+ *
+ * The woke-up time moves to match — the usual case when writing down a sleep
+ * from earlier. If that would put it in the future, the sleep must have just
+ * ended instead, so the end stays at now and the start walks back.
+ */
+export const sleepTimesForDuration = (
+  startTime: Date,
+  minutes: number,
+  now: Date,
+) => {
+  const endTime = new Date(startTime.getTime() + minutes * 60_000);
+  if (endTime.getTime() <= now.getTime()) return { startTime, endTime };
+  return {
+    startTime: new Date(now.getTime() - minutes * 60_000),
+    endTime: new Date(now.getTime()),
+  };
+};

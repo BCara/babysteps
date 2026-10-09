@@ -5,12 +5,14 @@ import {
   NursingBottomRow,
   NursingError,
   NursingHeader,
+  NursingOr,
   NursingPage,
-  NursingPrimaryAction,
+  NursingSecondaryAction,
   NursingSideCard,
   NursingSideRow,
   NursingSpacer,
   NursingTotal,
+  NursingTotalSlot,
   useNursingChrome,
 } from './NursingChrome';
 
@@ -27,11 +29,12 @@ const sideLabel = (side: 'left' | 'right') =>
   side === 'left' ? 'Left' : 'Right';
 
 /**
- * Starting a feed, in the running timer's clothes.
+ * Starting a feed.
  *
- * The same two side cards land in the same place they will occupy once the
- * timer is running, so the tap that starts a feed and the tap that switches
- * sides are the same reach.
+ * The two side cards are the start: a tap picks the side and runs the timer.
+ * They lead, and the start time sits above them as optional detail. Manual
+ * entry stays behind an "or", pushed down to sit with Close — it is the way
+ * out of this screen rather than a third thing to weigh up against the sides.
  */
 export default function NursingStartScreen({
   defaultBreastSide,
@@ -62,7 +65,7 @@ export default function NursingStartScreen({
   };
 
   return (
-    <NursingPage chrome={chrome} accessibilityLabel="Start nursing">
+    <NursingPage chrome={chrome} scrollable accessibilityLabel="Start nursing">
       <NursingHeader
         chrome={chrome}
         title="Nursing"
@@ -80,15 +83,10 @@ export default function NursingStartScreen({
         }}
         disabled={busy}
       />
-      <NursingSpacer />
 
-      <NursingTotal
-        chrome={chrome}
-        value={formatTimerSeconds(0)}
-        caption="Total"
-      />
-
-      <NursingSpacer />
+      <NursingTotalSlot>
+        <NursingTotal chrome={chrome} value={formatTimerSeconds(0)} caption="Total" />
+      </NursingTotalSlot>
 
       <NursingSideRow>
         {SIDES.map(side => {
@@ -116,9 +114,12 @@ export default function NursingStartScreen({
 
       <NursingSpacer />
 
-      <NursingPrimaryAction
+      <NursingOr chrome={chrome} />
+
+      <NursingSecondaryAction
         chrome={chrome}
-        label="Manual entry"
+        pressKey="manual"
+        label="Log nursing manually"
         onPress={() => onManualEntry(startTimeEdited ? startTime : undefined)}
         disabled={busy}
         accessibilityLabel="Enter a finished feed by hand"

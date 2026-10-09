@@ -20,6 +20,12 @@ import {
 export { executeCareCommand as watch_executeCareCommand } from './watchCare';
 export { extract as appointments_extract } from './appointmentExtraction';
 export {
+  acceptInvite as sharing_acceptInvite,
+  createInvite as sharing_createInvite,
+  removeCaregiver as sharing_removeCaregiver,
+  revokeInvite as sharing_revokeInvite,
+} from './caregiverSharing';
+export {
   cleanupDeletedUser as ai_cleanupDeletedUser,
   generate as ai_generate,
   getStatus as ai_getStatus,

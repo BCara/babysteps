@@ -294,3 +294,49 @@ export const describeBreastTiming = (
     `Right ${formatSide(rightSeconds)}`,
   ].join(' · ');
 };
+
+/**
+ * Corrects one side's time mid-feed without touching the other side's clock.
+ *
+ * A side that is not running simply takes the new total. The running side
+ * takes it too, with its current stretch restarted from now so it carries on
+ * counting up from the corrected figure. If the two sides now add up to more
+ * than the feed has been going, it must have started earlier than recorded, so
+ * the start moves back to fit.
+ */
+export const setNursingSideSeconds = (
+  metadata: BabyEventMetadata | undefined,
+  side: SingleBreastSide,
+  seconds: number,
+  startTime: Date,
+  nowMs = Date.now(),
+): { metadata: BabyEventMetadata; startTime: Date } => {
+  const running = runningBreastSide(metadata);
+  const live = breastDurationsAt(metadata, nowMs);
+  const nextSeconds = Math.max(0, Math.round(seconds));
+  const left = side === 'left' ? nextSeconds : live.leftBreastDurationSeconds;
+  const right = side === 'right' ? nextSeconds : live.rightBreastDurationSeconds;
+
+  const used = (['left', 'right'] as const).filter(
+    item => item === running || (item === 'left' ? left : right) > 0,
+  );
+
+  const nextMetadata: BabyEventMetadata = {
+    ...metadata,
+    // Both totals are taken as of now, so a running side restarts its current
+    // stretch from now rather than counting the old one twice.
+    leftBreastDurationSeconds: left,
+    rightBreastDurationSeconds: right,
+    breastSideStartedAtMs: running ? nowMs : metadata?.breastSideStartedAtMs,
+    breastSidesUsed: used.length ? used : metadata?.breastSidesUsed,
+    breastSide:
+      used.length === 2 ? 'both' : used.length === 1 ? used[0] : metadata?.breastSide,
+  };
+
+  const earliestStartMs = nowMs - (left + right) * 1000;
+  return {
+    metadata: nextMetadata,
+    startTime:
+      earliestStartMs < startTime.getTime() ? new Date(earliestStartMs) : startTime,
+  };
+};

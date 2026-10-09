@@ -6,6 +6,7 @@ import { Alert, ScrollView, SectionList, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
+  FAB,
   IconButton,
   Menu,
   Snackbar,
@@ -21,6 +22,9 @@ import { useEvents } from '../../../src/providers/EventProvider';
 import { useBabies } from '../../../src/providers/BabyProvider';
 import AdBanner from '../../../src/components/AdBanner';
 import CareLogModal, { AdditionalCareType, CareLogInput } from '../../../src/components/CareLogModal';
+import AddEntryPicker from '../../../src/components/AddEntryPicker';
+import AddEntrySheet from '../../../src/components/AddEntrySheet';
+import type { HomeActionKey } from '../../../src/constants/careActions';
 import {
   isActiveBabyEvent,
   shiftedEventTimes,
@@ -35,6 +39,7 @@ import {
   filterTimelineEvents,
   TimelineTypeFilter,
 } from '../../../src/utils/timelineFilters';
+import { timelineSectionLabel } from '../../../src/utils/timelineSections';
 
 interface TimelineTypeMenuProps {
   selectedType: TimelineTypeFilter;
@@ -124,6 +129,8 @@ export default function ActivityScreen() {
   const [reviewNow, setReviewNow] = useState(() => new Date());
   const [reviewOnly, setReviewOnly] = useState(false);
   const [selectedType, setSelectedType] = useState<TimelineTypeFilter>('all');
+  const [pickingEntry, setPickingEntry] = useState(false);
+  const [addEntry, setAddEntry] = useState<HomeActionKey | null>(null);
 
   useFocusEffect(useCallback(() => {
     setReviewNow(new Date());
@@ -148,14 +155,10 @@ export default function ActivityScreen() {
     });
 
     return Array.from(grouped.entries()).map(([key, data]) => ({
-      title: new Date(key).toLocaleDateString([], {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }),
+      ...timelineSectionLabel(new Date(key), reviewNow),
       data,
     }));
-  }, [filteredEvents]);
+  }, [filteredEvents, reviewNow]);
 
   const selectedTypeLabel =
     selectedType === 'all'
@@ -307,17 +310,25 @@ export default function ActivityScreen() {
             <IconButton
               icon="close"
               size={20}
+              iconColor={theme.colors.onPrimaryContainer}
               onPress={clearSelection}
               disabled={bulkBusy}
               accessibilityLabel="Clear selection"
               style={styles.selectionClose}
             />
-            <Text variant="titleMedium" style={styles.selectionCount}>
+            <Text
+              variant="titleMedium"
+              style={[
+                styles.selectionCount,
+                { color: theme.colors.onPrimaryContainer },
+              ]}
+            >
               {selectedIds.length} selected
             </Text>
             <Button
               mode="text"
               icon="call-merge"
+              textColor={theme.colors.onPrimaryContainer}
               onPress={confirmMergeSelected}
               disabled={bulkBusy || Boolean(mergeProblem)}
               accessibilityHint="Combines the selected activities into one entry"
@@ -327,7 +338,7 @@ export default function ActivityScreen() {
             <Button
               mode="text"
               icon="delete-outline"
-              textColor={theme.colors.error}
+              textColor={theme.colors.onPrimaryContainer}
               onPress={confirmDeleteSelected}
               loading={bulkBusy}
               disabled={bulkBusy}
@@ -355,18 +366,27 @@ export default function ActivityScreen() {
           sections={sections}
           keyExtractor={item => item.id!}
           renderSectionHeader={({ section }) => (
-            <Text
-              variant="labelLarge"
+            <View
               style={[
                 styles.sectionHeader,
                 { backgroundColor: theme.colors.background },
               ]}
             >
-              {section.title}
-            </Text>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                {section.title}
+              </Text>
+              <Text
+                variant="bodyMedium"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                {section.subtitle}
+              </Text>
+            </View>
           )}
-          renderItem={({ item }) => (
+          renderItem={({ item, index, section }) => (
             <TimelineEventRow
+              firstInDay={index === 0}
+              lastInDay={index === section.data.length - 1}
               event={item}
               review={reviews.get(item.id!)}
               onReviewMerge={() => {
@@ -429,7 +449,30 @@ export default function ActivityScreen() {
           stickySectionHeadersEnabled
         />
       )}
+      {!selecting ? (
+        <FAB
+          icon="plus"
+          style={styles.addFab}
+          onPress={() => setPickingEntry(true)}
+          accessibilityLabel="Add an activity"
+          accessibilityHint="Chooses what to write down"
+        />
+      ) : null}
       <AdBanner />
+      <AddEntryPicker
+        visible={pickingEntry}
+        title="Add an activity"
+        onPick={key => {
+          setPickingEntry(false);
+          setAddEntry(key);
+        }}
+        onDismiss={() => setPickingEntry(false)}
+      />
+      <AddEntrySheet
+        entry={addEntry}
+        onClose={() => setAddEntry(null)}
+        onSaved={setNotice}
+      />
       <EventEditModal
         visible={Boolean(editingEvent)}
         event={editingEvent}
@@ -555,8 +598,14 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 6,
+    paddingTop: 18,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 10,
+  },
+  sectionTitle: {
+    fontWeight: '800',
   },
   emptyState: {
     flex: 1,
@@ -572,4 +621,6 @@ const styles = StyleSheet.create({
   showAllButton: {
     marginTop: 8,
   },
+  // A round + like Summary's, clear of the ad banner and the tab bar below it.
+  addFab: { position: 'absolute', right: 16, bottom: 78 },
 });

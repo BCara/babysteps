@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { BabyEvent, BabyEventType } from '../../src/services/firebase/events';
 import {
   blockHeight,
+  canDragPlaced,
+  canResizePlaced,
+  clampDragDelta,
+  dragDeltaMinutes,
+  draggedEventTimes,
   formatBlockDuration,
   formatHourLabel,
   HOUR_HEIGHT,
@@ -132,5 +137,97 @@ describe('day timeline labels', () => {
     expect(formatBlockDuration(25)).toBe('25m');
     expect(formatBlockDuration(60)).toBe('1h');
     expect(formatBlockDuration(95)).toBe('1h 35m');
+  });
+});
+
+describe('nursing blocks', () => {
+  it('draws a nursing feed by its time on the breast, not its timer span', () => {
+    const day = new Date(2026, 8, 28);
+    const start = new Date(2026, 8, 28, 3, 18);
+    const [placed] = placeEvents(
+      [
+        {
+          type: 'feed',
+          startTime: start,
+          endTime: new Date(2026, 8, 28, 6, 18),
+          durationMinutes: 180,
+          metadata: {
+            feedType: 'breast',
+            leftBreastDurationSeconds: 6 * 60,
+            rightBreastDurationSeconds: 0,
+          },
+          source: 'app',
+          loggedBy: 'test',
+        },
+      ],
+      day,
+      new Date(2026, 8, 28, 21, 0),
+    );
+    expect(placed.spanMinutes).toBe(6);
+    expect(placed.endTime).toEqual(new Date(2026, 8, 28, 3, 24));
+  });
+});
+
+describe('dragging blocks on the day timeline', () => {
+  const evening = new Date(2026, 8, 9, 23, 0);
+  const sleep = event('s1', 'sleep', at(13), { endTime: at(14, 30) });
+  const placedSleep = () => placeEvents([sleep], day, evening)[0];
+
+  it('snaps a drag to five-minute marks', () => {
+    expect(dragDeltaMinutes(minutesToOffset(12))).toBe(10);
+    expect(dragDeltaMinutes(minutesToOffset(13))).toBe(15);
+    expect(dragDeltaMinutes(-minutesToOffset(31))).toBe(-30);
+  });
+
+  it('moves the whole block, keeping its length', () => {
+    expect(draggedEventTimes(placedSleep(), 'move', 45)).toEqual({
+      startTime: at(13, 45),
+      endTime: at(15, 15),
+    });
+  });
+
+  it('resizes by stretching the end only', () => {
+    expect(draggedEventTimes(placedSleep(), 'resize', -30)).toEqual({
+      endTime: at(14),
+    });
+    const timed = event('p1', 'pumping', at(9), {
+      endTime: at(9, 20),
+      durationMinutes: 20,
+    });
+    expect(
+      draggedEventTimes(placeEvents([timed], day, evening)[0], 'resize', 10),
+    ).toEqual({ endTime: at(9, 30), durationMinutes: 30 });
+  });
+
+  it('keeps a move on the day and out of the future', () => {
+    const item = placedSleep();
+    expect(clampDragDelta(item, 'move', -24 * 60, day, evening)).toBe(-13 * 60);
+    // Ninety minutes long, so it can end no later than 11pm "now".
+    expect(clampDragDelta(item, 'move', 24 * 60, day, evening)).toBe(8 * 60 + 30);
+  });
+
+  it('never resizes a block below five minutes', () => {
+    expect(clampDragDelta(placedSleep(), 'resize', -200, day, evening)).toBe(-85);
+  });
+
+  it('only lifts finished blocks that start on the shown day', () => {
+    expect(canDragPlaced(placedSleep(), day)).toBe(true);
+    const overnight = event('s2', 'sleep', new Date(2026, 8, 8, 22), {
+      endTime: at(5),
+    });
+    expect(canDragPlaced(placeEvents([overnight], day, evening)[0], day)).toBe(false);
+    const running = event('s3', 'sleep', at(20));
+    expect(canDragPlaced(placeEvents([running], day, evening)[0], day)).toBe(false);
+  });
+
+  it('only offers a resize edge on timed, non-nursing blocks', () => {
+    expect(canResizePlaced(placedSleep())).toBe(true);
+    const nappy = event('d1', 'diaper', at(8), { endTime: at(8) });
+    expect(canResizePlaced(placeEvents([nappy], day, evening)[0])).toBe(false);
+    const nursing = event('f1', 'feed', at(7), {
+      endTime: at(7, 20),
+      metadata: { feedType: 'breast', leftBreastDurationSeconds: 600 },
+    });
+    expect(canResizePlaced(placeEvents([nursing], day, evening)[0])).toBe(false);
   });
 });

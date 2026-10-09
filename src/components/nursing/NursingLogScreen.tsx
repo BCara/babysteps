@@ -92,7 +92,6 @@ export default function NursingLogScreen({
         chrome={chrome}
         title={editingTimer ? 'Edit times' : 'Log nursing'}
         icon="mother-nurse"
-        eyebrow="NURSING"
         onBack={onClose}
         backLabel={editingTimer ? 'Back to timer' : 'Close'}
       />

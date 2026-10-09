@@ -18,6 +18,10 @@ interface DailySummaryProps {
   compact?: boolean;
   period?: EventSummaryPeriod;
   onPeriodChange?: (period: EventSummaryPeriod) => void;
+  /** Sits inside another card, which supplies the frame and background. */
+  embedded?: boolean;
+  /** Text colour to use instead of the theme's, to read on that card. */
+  ink?: string;
 }
 
 const formatSleep = (minutes: number) => {
@@ -56,8 +60,14 @@ export default function DailySummary({
   compact = false,
   period = 'today',
   onPeriodChange,
+  embedded = false,
+  ink,
 }: DailySummaryProps) {
   const theme = useTheme();
+  const strong = ink ?? theme.colors.onSurface;
+  const muted = ink ?? theme.colors.onSurfaceVariant;
+  const accent = ink ?? theme.colors.primary;
+  const mutedStyle = ink ? styles.mutedInk : null;
   const { width, fontScale } = useWindowDimensions();
   const roomy = width < 380 || fontScale > 1.2;
   const { colors: eventColors, careInk } = useCarePalette();
@@ -107,16 +117,19 @@ export default function DailySummary({
       style={[
         styles.pressable,
         compact && styles.compactPressable,
+        embedded && styles.embeddedPressable,
       ]}
     >
       <Surface
         style={[
           styles.container,
           compact && styles.compactContainer,
-          {
-            backgroundColor: theme.colors.elevation.level1,
-            borderColor: theme.colors.outlineVariant,
-          },
+          embedded
+            ? styles.embeddedContainer
+            : {
+                backgroundColor: theme.colors.elevation.level1,
+                borderColor: theme.colors.outlineVariant,
+              },
         ]}
         elevation={0}
       >
@@ -141,7 +154,7 @@ export default function DailySummary({
                   <Text
                     variant="titleSmall"
                     numberOfLines={2}
-                    style={styles.title}
+                    style={[styles.title, { color: strong }]}
                   >
                     {periodLabel}
                   </Text>
@@ -149,7 +162,7 @@ export default function DailySummary({
                     <Icon
                       source="menu-down"
                       size={17}
-                      color={theme.colors.primary}
+                      color={accent}
                     />
                   ) : null}
                 </View>
@@ -157,7 +170,7 @@ export default function DailySummary({
               <Text
                 variant="labelSmall"
                 numberOfLines={1}
-                style={[styles.status, { color: theme.colors.onSurfaceVariant }]}
+                style={[styles.status, { color: muted }, mutedStyle]}
               >
                 {status}
               </Text>
@@ -199,13 +212,13 @@ export default function DailySummary({
                       variant="titleSmall"
                       numberOfLines={1}
                       adjustsFontSizeToFit
-                      style={[styles.value, { color: theme.colors.onSurface }]}
+                      style={[styles.value, { color: strong }]}
                     >
                       {stat.value}
                     </Text>
                     <Text
                       variant="labelSmall"
-                      style={{ color: theme.colors.onSurfaceVariant }}
+                      style={[{ color: muted }, mutedStyle]}
                     >
                       {stat.label}
                     </Text>
@@ -216,7 +229,7 @@ export default function DailySummary({
             <Icon
               source="chevron-right"
               size={20}
-              color={theme.colors.primary}
+              color={accent}
             />
           </Pressable>
         </View>
@@ -230,7 +243,7 @@ export default function DailySummary({
             styles.nursingRow,
             roomy && styles.wrappedNursing,
             compact && styles.compactNursingRow,
-            { borderTopColor: theme.colors.outlineVariant },
+            { borderTopColor: ink ? `${ink}33` : theme.colors.outlineVariant },
             pressed && styles.pressed,
           ]}
         >
@@ -242,7 +255,7 @@ export default function DailySummary({
               <Text
                 variant="labelMedium"
                 numberOfLines={1}
-                style={styles.nursingTitle}
+                style={[styles.nursingTitle, { color: strong }]}
               >
                 {compact
                   ? 'Breastfeeds'
@@ -251,7 +264,7 @@ export default function DailySummary({
               {!compact ? <Text
                 variant="labelSmall"
                 numberOfLines={1}
-                style={{ color: theme.colors.onSurfaceVariant }}
+                style={[{ color: muted }, mutedStyle]}
               >
                 Avg sitting{' '}
                 {averageNursingSeconds === null
@@ -274,11 +287,11 @@ export default function DailySummary({
             >
               <Text
                 variant="labelSmall"
-                style={{ color: theme.colors.onSurfaceVariant }}
+                style={[{ color: muted }, mutedStyle]}
               >
                 {label}
               </Text>
-              <Text variant="titleSmall" style={styles.sideTotalValue}>
+              <Text variant="titleSmall" style={[styles.sideTotalValue, { color: strong }]}>
                 {formatNursingTime(Number(seconds))}
               </Text>
             </View>
@@ -305,6 +318,20 @@ const styles = StyleSheet.create({
   compactPressable: {
     marginTop: 4,
     marginBottom: 8,
+  },
+  embeddedPressable: {
+    margin: 0,
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  mutedInk: {
+    opacity: 0.72,
+  },
+  embeddedContainer: {
+    minHeight: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   container: {
     minHeight: 108,

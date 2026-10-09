@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -22,14 +21,19 @@ import { Redirect, useRouter } from 'expo-router';
 import HomeCareCard from '../../../src/components/HomeCareCard';
 import AppointmentsList from '../../../src/components/AppointmentsList';
 import DailySummary from '../../../src/components/DailySummary';
-import BabySelector from '../../../src/components/BabySelector';
-import LogModal, { QuickLogInput } from '../../../src/components/LogModal';
+import BabyStatusCard from '../../../src/components/BabyStatusCard';
+import { babyStatus } from '../../../src/utils/babyStatus';
+import { useCarePalette } from '../../../src/hooks/useCarePalette';
+import LogModal, { LogDraft, QuickLogInput } from '../../../src/components/LogModal';
+import MissedCareCard from '../../../src/components/MissedCareCard';
+import { useMissedCare } from '../../../src/hooks/useMissedCare';
 import FeedPanel from '../../../src/components/FeedPanel';
 import ActiveFeedTimer from '../../../src/components/ActiveFeedTimer';
 import {
   optionalSleepLocation,
   type SleepType,
 } from '../../../src/utils/sleepLocation';
+import type { SettlingMetadata } from '../../../src/utils/sleepSettling';
 import EventCard from '../../../src/components/EventCard';
 import EventEditModal from '../../../src/components/EventEditModal';
 import { eventColors } from '../../../src/theme/eventColors';
@@ -51,6 +55,7 @@ import {
   finishBreastTiming,
   formatNursingDuration,
   runningBreastSide,
+  setNursingSideSeconds,
   startBreastTiming,
   switchBreastSide,
 } from '../../../src/utils/breastFeed';
@@ -69,6 +74,8 @@ import type { BabyEventType } from '../../../src/services/firebase/events';
 import ActivePumpingTimer from '../../../src/components/ActivePumpingTimer';
 import SleepStartScreen from '../../../src/components/sleep/SleepStartScreen';
 import SleepTimerScreen from '../../../src/components/sleep/SleepTimerScreen';
+import SleepSavedScreen from '../../../src/components/sleep/SleepSavedScreen';
+import { cappedTimerEnd } from '../../../src/utils/timerLimits';
 import AppearanceModeToggle from '../../../src/components/AppearanceModeToggle';
 import QuickCareConfigModal from '../../../src/components/QuickCareConfigModal';
 import ExpandedQuickCareView from '../../../src/components/ExpandedQuickCareView';
@@ -98,7 +105,7 @@ type QuickCareKey = HomeActionKey;
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { width, fontScale } = useWindowDimensions();
+  const { careInk } = useCarePalette();
   const isFocused = useIsFocused();
   const router = useRouter();
   const { maybeShowInterstitial } = useMonetization();
@@ -145,12 +152,16 @@ export default function HomeScreen() {
   const [feedPanelDefaultType, setFeedPanelDefaultType] = useState<
     'breast' | 'bottle'
   >('breast');
+  const [logFinishesTimer, setLogFinishesTimer] = useState(false);
   const [sleepPanelVisible, setSleepPanelVisible] = useState(false);
   const [pumpingPanelVisible, setPumpingPanelVisible] = useState(false);
   const [selectedAction, setSelectedAction] = useState<
     'feed' | 'sleep' | 'diaper' | null
   >(null);
   const [manualEntryStartTime, setManualEntryStartTime] = useState<Date>();
+  /** Set while the form is open on a suggested missed sleep or feed. */
+  const [missedCareDraft, setMissedCareDraft] =
+    useState<{ key: string; draft: LogDraft } | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [summaryPeriod, setSummaryPeriod] =
     useState<EventSummaryPeriod>('today');
@@ -169,6 +180,11 @@ export default function HomeScreen() {
   const [feedStartTimeFallback, setFeedStartTimeFallback] =
     useState<BabyEvent | null>(null);
   const [completedFeed, setCompletedFeed] = useState<BabyEvent | null>(null);
+  /**
+   * The sleep just stopped from its own screen, held so that screen can show
+   * it for review instead of falling straight back to "Start sleep".
+   */
+  const [completedSleep, setCompletedSleep] = useState<BabyEvent | null>(null);
   const [message, setMessage] = useState('');
   const [editingEvent, setEditingEvent] = useState<BabyEvent | null>(null);
   const [careLogType, setCareLogType] = useState<AdditionalCareType | null>(null);
@@ -312,6 +328,15 @@ export default function HomeScreen() {
     clockNow,
     'compact',
   );
+  const {
+    suggestion: missedCare,
+    decline: declineMissedCare,
+    accept: acceptMissedCare,
+  } = useMissedCare({
+    events,
+    now: clockNow,
+    ready: !eventsLoading && !eventsError,
+  });
   const homeSummaryEvents = eventsInSummaryPeriod(
     events,
     summaryPeriod,
@@ -325,21 +350,33 @@ export default function HomeScreen() {
     setLogModalVisible(false);
     setSelectedAction(null);
     setManualEntryStartTime(undefined);
+    setMissedCareDraft(null);
     setFeedPanelVisible(false);
     setSleepPanelVisible(false);
     setPumpingPanelVisible(false);
     setCareLogType(null);
     setEditingCareEvent(null);
     clearCompletedFeed();
+    setCompletedSleep(null);
   };
 
+  /**
+   * `finish` is the running timer's own "Edit times": the form adopts that
+   * event, stops it and saves over it. Everything else is an addition — a feed
+   * from three hours ago written down while the current one is still going —
+   * and must not be able to touch what is running.
+   */
   const openLog = (
     action: 'feed' | 'sleep' | 'diaper',
     startTime?: Date,
+    feedType?: 'breast' | 'bottle',
+    intent: 'add' | 'finish' = 'add',
   ) => {
+    setLogFinishesTimer(intent === 'finish');
+    if (feedType) setFeedPanelDefaultType(feedType);
     setFocusedQuickCareKey(current =>
       action === 'feed'
-        ? current === 'bottle'
+        ? (feedType ? feedType === 'bottle' : current === 'bottle')
           ? 'bottle'
           : 'nursing'
         : action,
@@ -349,8 +386,24 @@ export default function HomeScreen() {
     setPumpingPanelVisible(false);
     setCareLogType(null);
     setManualEntryStartTime(startTime);
+    setMissedCareDraft(null);
     setSelectedAction(action);
     setLogModalVisible(true);
+  };
+
+  /** "Add it" on a missed sleep or feed: the usual form, already filled in. */
+  const openMissedCare = () => {
+    if (!missedCare) return;
+    openLog(missedCare.kind, missedCare.startTime, missedCare.feedType);
+    setMissedCareDraft({
+      key: missedCare.key,
+      draft: {
+        endTime: missedCare.endTime,
+        durationMinutes: missedCare.durationMinutes,
+        amount: missedCare.amount,
+        unit: missedCare.unit,
+      },
+    });
   };
 
   const openFeedPanel = (feedType: 'breast' | 'bottle') => {
@@ -371,6 +424,7 @@ export default function HomeScreen() {
     setFeedPanelVisible(false);
     setPumpingPanelVisible(false);
     setCareLogType(null);
+    setCompletedSleep(null);
     setSleepPanelVisible(true);
   };
 
@@ -481,16 +535,31 @@ export default function HomeScreen() {
           endTime: input.endTime,
           durationMinutes: input.durationMinutes,
           notes: input.notes?.trim() || '',
-          metadata: { sleepType: input.sleepType },
+          metadata: {
+            sleepType: input.sleepType,
+            settlingMinutes: input.settlingMinutes,
+            settlingDifficulty: input.settlingDifficulty,
+          },
         });
         setMessage('Sleep updated');
       } else {
-        await logSleep(input.durationMinutes, input.notes, input.sleepType, {
-          startTime: input.startTime,
-          endTime: input.endTime,
-        });
+        await logSleep(
+          input.durationMinutes,
+          input.notes,
+          input.sleepType,
+          { startTime: input.startTime, endTime: input.endTime },
+          {
+            settlingMinutes: input.settlingMinutes,
+            settlingDifficulty: input.settlingDifficulty,
+          },
+        );
         setMessage('Sleep logged');
       }
+    }
+
+    if (isNewLog && missedCareDraft) {
+      acceptMissedCare(missedCareDraft.key);
+      setMissedCareDraft(null);
     }
 
     if (isNewLog) {
@@ -645,8 +714,22 @@ export default function HomeScreen() {
     setSleepBusy(true);
     try {
       if (activeSleep) {
+        const stopping = activeSleep;
+        const endTime = cappedTimerEnd(stopping);
         await stopSleep();
         setMessage('Sleep stopped');
+        // Stopped from its own screen: show what was saved, ready to correct.
+        // The Home card's stop leaves the caregiver where they were.
+        if (sleepPanelVisible) {
+          setCompletedSleep({
+            ...stopping,
+            endTime,
+            durationMinutes: Math.max(
+              1,
+              Math.round((endTime.getTime() - stopping.startTime.getTime()) / 60_000),
+            ),
+          });
+        }
         setTimeout(() => {
           void maybeShowInterstitial();
         }, 500);
@@ -658,6 +741,107 @@ export default function HomeScreen() {
       setMessage(error instanceof Error ? error.message : 'Unable to update sleep.');
     } finally {
       setSleepBusy(false);
+    }
+  };
+
+  /**
+   * Stops the running sleep at a woke-up time set on its screen — the sleep
+   * that was left running after the baby had actually woken.
+   */
+  const handleStopSleepAt = async (endTime: Date) => {
+    if (!activeSleep?.id) return;
+    const durationMinutes = Math.max(
+      1,
+      Math.round((endTime.getTime() - activeSleep.startTime.getTime()) / 60_000),
+    );
+    setSleepBusy(true);
+    try {
+      await editEvent(activeSleep.id, { endTime, durationMinutes });
+      setMessage('Sleep saved');
+      setCompletedSleep({ ...activeSleep, endTime, durationMinutes });
+      setTimeout(() => {
+        void maybeShowInterstitial();
+      }, 500);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to save the sleep.');
+    } finally {
+      setSleepBusy(false);
+    }
+  };
+
+  const handleSaveCompletedSleep = async (changes: {
+    startTime: Date;
+    endTime: Date;
+    durationMinutes: number;
+    sleepType?: SleepType;
+    settlingMinutes?: number;
+    settlingDifficulty?: SettlingMetadata['settlingDifficulty'];
+  }) => {
+    if (!completedSleep?.id) return;
+    await editEvent(completedSleep.id, {
+      startTime: changes.startTime,
+      endTime: changes.endTime,
+      durationMinutes: changes.durationMinutes,
+      metadata: {
+        ...completedSleep.metadata,
+        sleepType: changes.sleepType,
+        settlingMinutes: changes.settlingMinutes,
+        settlingDifficulty: changes.settlingDifficulty,
+      },
+    });
+    setMessage('Sleep updated');
+    closeFocusedQuickCare();
+  };
+
+  const handleReopenCompletedSleep = async () => {
+    if (!completedSleep?.id) return;
+    if (activeSleep) throw new Error('Another sleep is already running.');
+    await reopenEvent(completedSleep.id);
+    // With the sleep running again, the panel shows its timer.
+    setCompletedSleep(null);
+    setMessage('Sleep timer running again');
+  };
+
+  const confirmDeleteCompletedSleep = () => {
+    if (!completedSleep?.id) return;
+    const eventId = completedSleep.id;
+    Alert.alert('Delete this sleep?', 'It will be removed from the shared timeline.', [
+      { text: 'Keep it', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteEvent(eventId);
+            setMessage('Sleep deleted');
+            closeFocusedQuickCare();
+          } catch (error) {
+            setMessage(error instanceof Error ? error.message : 'Unable to delete this sleep.');
+          }
+        },
+      },
+    ]);
+  };
+
+  /** A side's time corrected mid-feed — the side left running too long. */
+  const handleSetNursingSide = async (side: 'left' | 'right', seconds: number) => {
+    if (!activeFeed?.id) return;
+    const next = setNursingSideSeconds(
+      activeFeed.metadata,
+      side,
+      seconds,
+      activeFeed.startTime,
+    );
+    try {
+      await editEvent(activeFeed.id, {
+        metadata: next.metadata,
+        ...(next.startTime.getTime() !== activeFeed.startTime.getTime()
+          ? { startTime: next.startTime }
+          : {}),
+      });
+      setMessage(`${side === 'left' ? 'Left' : 'Right'} side updated`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to update that side.');
     }
   };
 
@@ -787,17 +971,37 @@ export default function HomeScreen() {
     }
   };
 
+  /**
+   * Starts a sleep, or throws saying why it cannot.
+   *
+   * The sleep screen covers Home, so a message sent to Home's snackbar from
+   * there is never seen — the button would just appear to do nothing. That
+   * screen calls this directly and shows the reason itself.
+   */
+  const startSleepOrThrow = async (
+    sleepType?: SleepType,
+    startTime?: Date,
+    settling?: SettlingMetadata,
+  ) => {
+    if (activeFeed) {
+      throw new Error(
+        activeFeed.metadata?.feedType === 'bottle'
+          ? 'A bottle feed is still running. Finish it first, then start sleep.'
+          : 'A nursing feed is still open, even if paused. Finish it first, then start sleep.',
+      );
+    }
+    await startSleep(sleepType, startTime, settling);
+    setMessage('Sleep timer started');
+  };
+
   const handleQuickStartSleep = async (
     sleepType?: SleepType,
     startTime?: Date,
+    settling?: SettlingMetadata,
   ) => {
     setSleepBusy(true);
     try {
-      if (activeFeed) {
-        throw new Error('Stop the feed timer before starting sleep.');
-      }
-      await startSleep(sleepType, startTime);
-      setMessage('Sleep timer started');
+      await startSleepOrThrow(sleepType, startTime, settling);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Unable to start sleep timer.',
@@ -1480,6 +1684,49 @@ export default function HomeScreen() {
     }
   };
 
+  /**
+   * A sleep that was started late. Moving the start back lengthens the running
+   * timer; the clock on the screen is derived from this, so it simply follows.
+   */
+  const handleUpdateSleepStart = async (next: Date) => {
+    if (!activeSleep?.id) return;
+    if (next.getTime() > Date.now()) {
+      setMessage('Choose a start time that is not in the future.');
+      return;
+    }
+
+    setSleepTypeBusy(true);
+    try {
+      await editEvent(activeSleep.id, { startTime: next });
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to update the start time.',
+      );
+    } finally {
+      setSleepTypeBusy(false);
+    }
+  };
+
+  const handleUpdateSleepSettling = async (settling: SettlingMetadata) => {
+    if (!activeSleep?.id) return;
+    if (
+      activeSleep.metadata?.settlingMinutes === settling.settlingMinutes &&
+      activeSleep.metadata?.settlingDifficulty === settling.settlingDifficulty
+    ) {
+      return;
+    }
+
+    try {
+      await editEvent(activeSleep.id, {
+        metadata: { ...activeSleep.metadata, ...settling },
+      });
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Unable to update settling.',
+      );
+    }
+  };
+
   const handleNursingQuickSide = (side: 'left' | 'right') => {
     if (feedStartPending) return;
 
@@ -1557,8 +1804,12 @@ export default function HomeScreen() {
             ? activeFeedDurations.leftBreastDurationSeconds
             : activeFeedDurations.rightBreastDurationSeconds;
         return {
-          label: isCurrentSide ? 'Pause' : nursingPaused ? (liveSideSeconds > 0 ? 'Resume' : 'Start') : displayedActiveFeed ? 'Switch' : 'Start',
-          detail: side === 'left' ? 'Left' : 'Right',
+          // Pause, resume, switch and start are all legible as symbols; which
+          // breast is not. The tile names the side and the icon says the verb,
+          // with the whole phrase kept for screen readers below.
+          label: side === 'left' ? 'Left' : 'Right',
+          // Each side's own clock, while there is a feed to time.
+          detail: activeNursing ? formatTimerSeconds(liveSideSeconds) : undefined,
           icon: isCurrentSide
             ? 'pause'
             : nursingPaused
@@ -1591,19 +1842,30 @@ export default function HomeScreen() {
           color={eventColors.feed}
           onPress={() => openFeedPanel('breast')}
           onLongPress={() => openPreviousEntry(lastNursingFeed, 'nursing feed')}
-          status={activeNursing ? (nursingPaused ? 'Paused' : 'Nursing now') : undefined}
-          summaryLine={activeNursing ? activeFeedTimer : nursingHint}
+          onManualEntry={() => openLog('feed', undefined, 'breast')}
+          summaryLine={activeNursing ? activeFeedTimer : undefined}
           emphasizeSummary={Boolean(activeNursing)}
-          summaryLabel={lastNursingFeed ? '' : 'Nursing'}
+          hint={activeNursing ? undefined : nursingHint}
+          summaryLabel={
+            activeNursing
+              ? nursingPaused
+                ? 'Paused'
+                : 'Nursing now'
+              : lastNursingFeed
+                ? ''
+                : 'Nursing'
+          }
+          // During a feed the side times are on the side buttons; the line
+          // here only earns its place when it describes the last feed.
           stats={
-            activeNursing || lastNursingFeed
+            !activeNursing && lastNursingFeed
               ? [
                   {
-                    label: 'Left',
+                    label: 'L',
                     value: formatNursingDuration(activeNursing ? activeFeedDurations.leftBreastDurationSeconds : lastNursingLeftSeconds),
                   },
                   {
-                    label: 'Right',
+                    label: 'R',
                     value: formatNursingDuration(activeNursing ? activeFeedDurations.rightBreastDurationSeconds : lastNursingRightSeconds),
                   },
                 ]
@@ -1649,6 +1911,7 @@ export default function HomeScreen() {
           color={eventColors.feed}
           onPress={() => openFeedPanel('bottle')}
           onLongPress={() => openPreviousEntry(lastBottleFeed, 'bottle feed')}
+          onManualEntry={() => openLog('feed', undefined, 'bottle')}
           hint={bottleHint}
           summaryLabel={lastBottleFeed ? '' : 'Bottle'}
           stats={
@@ -1712,7 +1975,8 @@ export default function HomeScreen() {
           color={eventColors.sleep}
           onPress={openSleepPanel}
           onLongPress={() => openPreviousEntry(lastSleep, 'sleep')}
-          hint={activeSleep ? sleepHint : lastSleep?.endTime ? `Last sleep ended ${formatPreviousTime(formatTimeSinceLastEvent(lastSleep, ''))}` : sleepHint}
+          onManualEntry={() => openLog('sleep')}
+          hint={sleepHint}
           summaryLabel={activeSleep ? 'Sleeping now' : ''}
           disabled={sleepBusy || sleepCancelBusy}
           quickActions={[
@@ -1745,6 +2009,7 @@ export default function HomeScreen() {
           onPress={() => openLog('diaper')}
           onLongPress={() => openPreviousEntry(lastNappy, 'nappy')}
           onEditLast={lastNappy ? () => openPreviousEntry(lastNappy, 'nappy') : undefined}
+          onManualEntry={() => openLog('diaper')}
           hint={lastNappy ? `${lastNappyType === 'Wet + dirty' ? 'Mixed' : lastNappyType === 'Dirty' ? 'Poo' : lastNappyType} · ${nappyHint}` : nappyHint}
           stats={lastNappyAmount ? [{ value: lastNappyAmount }] : undefined}
           disabled={nappyBusy}
@@ -1758,7 +2023,7 @@ export default function HomeScreen() {
             },
             {
               label: 'Mixed',
-              icon: 'checkbox-multiple-marked-circle-outline',
+              icon: 'water-plus-outline',
               onPress: () => { void handleQuickNappy('both'); },
               accessibilityLabel: 'Log a wet and poo nappy now',
               disabled: nappyBusy,
@@ -1789,6 +2054,7 @@ export default function HomeScreen() {
           color={careActionByType.pumping.color}
           onPress={activePumping ? openPumpingPanel : () => openCareLog('pumping')}
           onLongPress={() => openPreviousEntry(lastPumping, 'pumping session')}
+          onManualEntry={() => openCareLog('pumping')}
           hint={
             activePumping
               ? formatTimerSeconds((clockNow.getTime() - activePumping.startTime.getTime()) / 1_000)
@@ -1842,6 +2108,7 @@ export default function HomeScreen() {
         onLongPress={() =>
           openPreviousEntry(lastEvent, definition.label.toLowerCase())
         }
+        onManualEntry={() => openCareLog(type)}
         hint={hint}
         summaryLine={type === 'growth' ? formatCareEventDetail(lastEvent) : undefined}
         emphasizeSummary={type === 'growth'}
@@ -1893,7 +2160,25 @@ export default function HomeScreen() {
           onEdit={handleEditFeed}
           onDiscard={handleDiscardCompletedFeed}
           onCancel={handleCancelFeed}
-          onSwitchToManual={() => openLog('feed', feedPanel.startTime)}
+          onSetSideSeconds={(side, seconds) => {
+            void handleSetNursingSide(side, seconds);
+          }}
+          onAddEarlier={() =>
+            openLog(
+              'feed',
+              undefined,
+              feedPanel.metadata?.feedType || 'breast',
+              'add',
+            )
+          }
+          onSwitchToManual={() =>
+            openLog(
+              'feed',
+              feedPanel.startTime,
+              feedPanel.metadata?.feedType || 'breast',
+              'finish',
+            )
+          }
           stopping={feedBusy}
           cancelling={feedCancelBusy}
           switching={feedTransitionBlocksControls}
@@ -1915,7 +2200,7 @@ export default function HomeScreen() {
           defaultUnit={defaultBottleUnit}
           showCloseButton={false}
           onClose={closeFocusedQuickCare}
-          onManualEntry={startTime => openLog('feed', startTime)}
+          onManualEntry={startTime => openLog('feed', startTime, feedPanelDefaultType)}
           onStartBreastFeed={handleStartBreastFeed}
           onLogBottleFeed={handleLogBottleFeed}
         />
@@ -1923,6 +2208,34 @@ export default function HomeScreen() {
     }
 
     if (sleepPanelVisible) {
+      // The stored version, once the stop has come back from Firestore; the
+      // snapshot taken at the moment of stopping until then.
+      const reviewedSleep = completedSleep
+        ? events.find(event => event.id === completedSleep.id && event.endTime) ??
+          completedSleep
+        : null;
+      if (reviewedSleep?.endTime && !activeSleep) {
+        return (
+          <SleepSavedScreen
+            key={`${reviewedSleep.id}:${reviewedSleep.endTime.getTime()}`}
+            startTime={reviewedSleep.startTime}
+            endTime={reviewedSleep.endTime}
+            sleepType={optionalSleepLocation(
+              reviewedSleep.metadata?.sleepType,
+              customSleepLocations,
+            )}
+            settlingMinutes={reviewedSleep.metadata?.settlingMinutes}
+            settlingDifficulty={reviewedSleep.metadata?.settlingDifficulty}
+            customSleepLocations={customSleepLocations}
+            onAddSleepLocation={addSleepLocation}
+            onSave={handleSaveCompletedSleep}
+            onReopen={handleReopenCompletedSleep}
+            onDelete={confirmDeleteCompletedSleep}
+            onDone={closeFocusedQuickCare}
+            busy={sleepBusy}
+          />
+        );
+      }
       return activeSleep ? (
         <SleepTimerScreen
           startTime={activeSleep.startTime}
@@ -1935,9 +2248,18 @@ export default function HomeScreen() {
           onChangeSleepType={sleepType => {
             void handleUpdateSleepType(sleepType);
           }}
+          onChangeStartTime={next => {
+            void handleUpdateSleepStart(next);
+          }}
+          settlingMinutes={activeSleep.metadata?.settlingMinutes}
+          settlingDifficulty={activeSleep.metadata?.settlingDifficulty}
+          onChangeSettling={settling => {
+            void handleUpdateSleepSettling(settling);
+          }}
           onStop={() => void handleSleep()}
           onDiscard={handleCancelSleep}
-          onManual={() => openLog('sleep')}
+          onStopAt={endTime => void handleStopSleepAt(endTime)}
+          onAddEarlier={() => openLog('sleep', undefined, undefined, 'add')}
           onBack={closeFocusedQuickCare}
           busy={sleepBusy || sleepCancelBusy || sleepTypeBusy}
         />
@@ -1947,8 +2269,24 @@ export default function HomeScreen() {
           customSleepLocations={customSleepLocations}
           onAddSleepLocation={addSleepLocation}
           onClose={closeFocusedQuickCare}
-          onStart={handleQuickStartSleep}
-          onManualEntry={startTime => openLog('sleep', startTime)}
+          onStart={startSleepOrThrow}
+          onLogSleep={async (
+            sleepType,
+            startTime,
+            endTime,
+            durationMinutes,
+            settling,
+          ) => {
+            await logSleep(
+              durationMinutes,
+              undefined,
+              sleepType,
+              { startTime, endTime },
+              settling,
+            );
+            setMessage('Sleep logged');
+            closeFocusedQuickCare();
+          }}
         />
       );
     }
@@ -1963,6 +2301,9 @@ export default function HomeScreen() {
             onStop={handlePumping}
             onCancel={handleCancelPumping}
             onManual={handlePumping}
+            // A new pumping entry: the care log only ever creates, so the
+            // session still running is left exactly as it is.
+            onAddEarlier={() => openCareLog('pumping')}
             onChangeSide={side => {
               if (!activePumping.id) return;
               void editEvent(activePumping.id, {
@@ -1990,8 +2331,8 @@ export default function HomeScreen() {
           type={selectedAction}
           onClose={closeFocusedQuickCare}
           onSave={handleSaveLog}
-          activeFeed={activeFeed}
-          activeSleep={activeSleep}
+          activeFeed={logFinishesTimer ? activeFeed : null}
+          activeSleep={logFinishesTimer ? activeSleep : null}
           onStopActiveFeed={handleStopFeedForManual}
           onStopActiveSleep={handleStopSleepForManual}
           defaultFeedType={feedPanelDefaultType}
@@ -1999,6 +2340,7 @@ export default function HomeScreen() {
           showCloseButton={false}
           previousDiaper={lastNappy}
           initialStartTime={manualEntryStartTime}
+          initialDraft={missedCareDraft?.draft}
           customSleepLocations={customSleepLocations}
           onAddSleepLocation={addSleepLocation}
         />
@@ -2152,62 +2494,75 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.header, (width < 380 || fontScale > 1.2) && styles.headerWrapped]}>
-          <View style={styles.headerLeft}>
-            <Text variant="bodyMedium" style={styles.eyebrow}>
-              Caring for
-            </Text>
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <BabySelector
-                  currentBabyName={selectedBaby.name}
-                  currentBabyAge={selectedBabyAge}
-                  onPress={() => setMenuVisible(true)}
-                />
-              }
-            >
-              {babies.map(baby => (
-                <Menu.Item
-                  key={baby.id}
-                  title={baby.name}
-                  leadingIcon={
-                    baby.id === selectedBaby.id ? 'check-circle' : 'baby-face-outline'
-                  }
-                  onPress={async () => {
-                    setMenuVisible(false);
-                    if (baby.id) await selectBaby(baby.id);
-                  }}
-                />
-              ))}
-            </Menu>
-          </View>
-          <View style={styles.headerRight}>
-            <Surface
-              style={[
-                styles.datePill,
-                { backgroundColor: theme.colors.elevation.level2 },
-              ]}
-              elevation={0}
-            >
-              <Text variant="labelLarge" style={styles.dateText}>
+        <BabyStatusCard
+          status={babyStatus({
+            name: selectedBaby.name,
+            events,
+            activeFeed: displayedActiveFeed,
+            activeSleep,
+            activePumping,
+            now: clockNow,
+          })}
+          age={selectedBabyAge}
+          header={
+            <>
+              <Text variant="titleMedium" style={[styles.homeDate, { color: careInk }]}>
                 {clockNow.toLocaleDateString([], {
                   weekday: 'short', day: 'numeric', month: 'short',
                 })}
               </Text>
-            </Surface>
-            <AppearanceModeToggle compact />
-          </View>
-        </View>
+              <View style={styles.homeHeaderActions}>
+                {babies.length > 1 ? (
+                  <Menu
+                    visible={menuVisible}
+                    onDismiss={() => setMenuVisible(false)}
+                    anchor={
+                      <IconButton
+                        icon="account-switch-outline"
+                        iconColor={careInk}
+                        accessibilityLabel={`Caring for ${selectedBaby.name}. Switch baby`}
+                        onPress={() => setMenuVisible(true)}
+                      />
+                    }
+                  >
+                    {babies.map(baby => (
+                      <Menu.Item
+                        key={baby.id}
+                        title={baby.name}
+                        leadingIcon={
+                          baby.id === selectedBaby.id ? 'check-circle' : 'baby-face-outline'
+                        }
+                        onPress={async () => {
+                          setMenuVisible(false);
+                          if (baby.id) await selectBaby(baby.id);
+                        }}
+                      />
+                    ))}
+                  </Menu>
+                ) : null}
+                <AppearanceModeToggle compact />
+              </View>
+            </>
+          }
+        >
+          <DailySummary
+            compact
+            embedded
+            ink={careInk}
+            events={homeSummaryEvents}
+            period={summaryPeriod}
+            onPeriodChange={setSummaryPeriod}
+            onPress={() => router.push('/(app)/(tabs)/stats')}
+          />
+        </BabyStatusCard>
 
-        <DailySummary
-          compact
-          events={homeSummaryEvents}
-          period={summaryPeriod}
-          onPeriodChange={setSummaryPeriod}
-          onPress={() => router.push('/(app)/(tabs)/stats')}
-        />
+        {missedCare && !focusedQuickCareKey && !customizing ? (
+          <MissedCareCard
+            suggestion={missedCare}
+            onAdd={openMissedCare}
+            onDismiss={() => declineMissedCare(missedCare.key)}
+          />
+        ) : null}
 
         <View
           style={styles.actionsHeader}
@@ -2261,17 +2616,25 @@ export default function HomeScreen() {
               <IconButton
                 icon="close"
                 size={20}
+                iconColor={theme.colors.onPrimaryContainer}
                 onPress={() => setRecentSelectedIds([])}
                 disabled={recentBulkBusy}
                 accessibilityLabel="Clear recent activity selection"
                 style={styles.recentSelectionClose}
               />
-              <Text variant="titleMedium" style={styles.recentSelectionCount}>
+              <Text
+                variant="titleMedium"
+                style={[
+                  styles.recentSelectionCount,
+                  { color: theme.colors.onPrimaryContainer },
+                ]}
+              >
                 {recentSelectedIds.length} selected
               </Text>
               <Button
                 mode="text"
                 icon="call-merge"
+                textColor={theme.colors.onPrimaryContainer}
                 onPress={confirmMergeRecent}
                 disabled={recentBulkBusy || Boolean(recentMergeProblem)}
               >
@@ -2280,7 +2643,7 @@ export default function HomeScreen() {
               <Button
                 mode="text"
                 icon="delete-outline"
-                textColor={theme.colors.error}
+                textColor={theme.colors.onPrimaryContainer}
                 onPress={confirmDeleteRecent}
                 loading={recentBulkBusy}
                 disabled={recentBulkBusy}
@@ -2416,54 +2779,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 28,
   },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    gap: 12,
-  },
-  eyebrow: {
-    opacity: 0.7,
-    marginBottom: 5,
-    marginLeft: 2,
-  },
-  headerWrapped: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  // The baby pill gives way first: it can truncate its name, while the date
-  // and the brightness control are fixed-width and would otherwise be pushed
-  // off the right edge on a narrow phone.
-  headerLeft: {
-    flexShrink: 1,
-    minWidth: 0,
-  },
-  // The date and the brightness control share the header's right column, so
-  // neither competes with the Quick care row's title, Customise and mic.
-  headerRight: {
-    flexShrink: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  datePill: {
-    minHeight: 48,
-    paddingHorizontal: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-  },
-  dateIcon: {
-    width: 34,
-    height: 34,
-    margin: 2,
-  },
-  dateText: {
-    marginTop: -1,
+  homeDate: {
+    marginLeft: 4,
     fontWeight: '700',
+  },
+  homeHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   focusedActivityFooter: {
     paddingHorizontal: 12,
