@@ -311,6 +311,16 @@ export default function HomeScreen() {
     }
   }, [activeFeed, feedStartTimeFallback]);
 
+  const {
+    suggestion: missedCare,
+    decline: declineMissedCare,
+    accept: acceptMissedCare,
+  } = useMissedCare({
+    events,
+    now: clockNow,
+    ready: !eventsLoading && !eventsError,
+  });
+
   if (babiesLoading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -328,15 +338,6 @@ export default function HomeScreen() {
     clockNow,
     'compact',
   );
-  const {
-    suggestion: missedCare,
-    decline: declineMissedCare,
-    accept: acceptMissedCare,
-  } = useMissedCare({
-    events,
-    now: clockNow,
-    ready: !eventsLoading && !eventsError,
-  });
   const homeSummaryEvents = eventsInSummaryPeriod(
     events,
     summaryPeriod,
