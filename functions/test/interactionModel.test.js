@@ -9,10 +9,10 @@ const modelPath = path.resolve(
 );
 const model = JSON.parse(fs.readFileSync(modelPath, 'utf8'));
 
-test('Australian interaction model has the BabySteps invocation', () => {
+test('Australian interaction model has the PitterPatter invocation', () => {
   assert.equal(
     model.interactionModel.languageModel.invocationName,
-    'baby steps',
+    'pitter patter',
   );
 });
 

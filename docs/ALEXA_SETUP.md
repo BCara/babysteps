@@ -7,15 +7,15 @@ audio.
 
 ## Current voice commands
 
-With the invocation name **baby steps**, development users can say:
+With the invocation name **pitter patter**, development users can say:
 
-- "Alexa, ask PitterPatter to start a feed."
-- "Alexa, ask PitterPatter to stop the feed."
-- "Alexa, ask PitterPatter to log a ten minute breastfeed."
-- "Alexa, ask PitterPatter to start a nap."
-- "Alexa, ask PitterPatter to stop sleep."
-- "Alexa, ask PitterPatter to log forty minutes of sleep."
-- "Alexa, ask PitterPatter to log a wet nappy."
+- "Alexa, ask pitter patter to start a feed."
+- "Alexa, ask pitter patter to stop the feed."
+- "Alexa, ask pitter patter to log a ten minute breastfeed."
+- "Alexa, ask pitter patter to start a nap."
+- "Alexa, ask pitter patter to stop sleep."
+- "Alexa, ask pitter patter to log forty minutes of sleep."
+- "Alexa, ask pitter patter to log a wet nappy."
 
 Alexa writes to the baby currently selected in PitterPatter. Feed and sleep timers
 remain mutually exclusive, matching the Android app.
@@ -143,7 +143,7 @@ Use these public URLs in distribution/privacy fields:
    email/password PitterPatter account.
 3. Confirm that the account has a baby and that the intended baby is selected
    in the Android app.
-4. In the simulator, enter `ask baby steps to log a wet nappy`.
+4. In the simulator, enter `ask pitter patter to log a wet nappy`.
 5. Confirm Alexa reports success.
 6. Confirm exactly one nappy record appears in the Android Activity list with
    `source: alexa` in Firestore.

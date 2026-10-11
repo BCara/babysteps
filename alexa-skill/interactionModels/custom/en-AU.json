@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "pitterpatter",
+      "invocationName": "pitter patter",
       "intents": [
         {
           "name": "StartFeedIntent",
